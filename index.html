@@ -339,7 +339,7 @@ textarea{width:100%;min-height:140px;border-radius:12px;border:1px solid var(--c
 #wcard b{display:block;font-family:var(--f-disp);font-weight:400;font-size:2.5rem;line-height:1.1;color:#fff;text-shadow:0 0 6px var(--wc),0 0 18px var(--wc),0 0 38px var(--wc)}
 @keyframes wcard{0%{opacity:0;transform:scale(.94)}7%{opacity:1}11%{opacity:.25}15%{opacity:1}19%{opacity:.5}25%,82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.03)}}
 .sn.lock.devo{outline:2px dashed #f59e0b;outline-offset:2px;opacity:1}
-.ver[data-a]{cursor:default;user-select:none;-webkit-user-select:none}
+.vbtn{display:block;width:100%;background:none;border:0;padding:12px 8px;font:inherit;font-size:.75rem;color:var(--c-dim);cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 .lvchip{display:inline-flex;align-items:center;padding:3px;border-radius:var(--r-pill);background:var(--panel);border:1px solid var(--c-line);color:var(--c-text);font-weight:800;font-size:.8rem;cursor:pointer}
 .lvchip .ring{width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--c-accent) calc(var(--p) * 1%),var(--well) 0);display:grid;place-items:center;flex:none}
 .lvchip .ring b{width:27px;height:27px;border-radius:50%;background:var(--panel-2);display:grid;place-items:center;font-family:var(--f-disp);font-weight:400;font-size:.95rem;line-height:1}
@@ -474,7 +474,7 @@ html.reduce *,html.reduce *::before,html.reduce *::after{animation-duration:.001
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '2.5.0';
+const VERSION = '2.5.1';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
@@ -3770,9 +3770,11 @@ const History = {
 const Dev = {
   PIN: 2900125805,                               // hashStr('fs-dev|' + code)
   on: Store.get('fs_dev') === '1', taps: 0, tapT: 0,
-  tap() {
+  tap(el) {
     const now = Date.now(); if (now - this.tapT > 2500) this.taps = 0;
-    this.tapT = now; if (++this.taps < 7) return; this.taps = 0;
+    this.tapT = now; Haptics.buzz(8);
+    if (++this.taps < 7) { if (el && this.taps >= 3) el.textContent = t('version', VERSION) + ' · 🔧 ' + (7 - this.taps); return; }
+    this.taps = 0; if (el) el.textContent = t('version', VERSION);
     if (this.on) { this.set(false); return; }
     Modal.open('<h3>🔧 ' + t('devT') + '</h3><p class="note">' + t('devPinD') + '</p><input class="namein" id="devPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" data-go="devGo">'
       + '<button class="btn pri block" data-a="devGo">' + t('devUnlock') + '</button>');
@@ -4383,7 +4385,7 @@ Screens.about = {
       + '<canvas class="mc" data-m="happy" style="width:110px;height:102px"></canvas>'
       + '<div class="card"><p>' + t('aboutP1') + '</p><p class="muted" style="margin-top:8px">' + t('aboutP2', MAX_LV, NW) + '</p><p class="note" style="margin-top:8px">' + t('aboutP3') + '</p></div>'
       + '<div class="card" style="text-align:start"><h3 style="margin-bottom:6px">' + t('sChangelog') + '</h3>' + changelogHTML() + '</div>'
-      + '<p class="ver" data-a="verTap">' + t('version', VERSION) + (Dev.on ? ' · 🔧' : '') + '</p></div>', 'dark');
+      + '<button class="ver vbtn" data-a="verTap">' + t('version', VERSION) + (Dev.on ? ' · 🔧' : '') + '</button></div>', 'dark');
   },
 };
 Screens.missions = {
@@ -4642,7 +4644,7 @@ const Actions = {
   },
   equip(v) { save.shop.eq[Screens.shop.tab] = v; Cache.clear(); persist(); Sound.play('coin'); Screens.shop.render(); },
   ach() { SM.go('ach'); },
-  verTap() { Dev.tap(); },
+  verTap(v, el) { Dev.tap(el); },
   devGo() { Dev.check(); },
   devJump() { Dev.jump(); },
   devGoLv() { Dev.goLv(); },

@@ -64,6 +64,6 @@ At the start of every session, read this file. At the end of every session, upda
 - Ramadan/Eid art and balance only seen with `?event=` previews; check again when the real season comes.
 - Live multiplayer / online leaderboard need a server (Supabase or Firebase) — not started.
 - Real-device test still pending (use `game-lan`); GitHub Pages hosting not set up (needs the user's OK — it publishes publicly).
-- Git is local only (branch `master`, no remote). First game commit 2026-10-29 (v2.4.0). Commit after each finished version when the user agrees.
+- Git: branch `master`, pushed to the PUBLIC repo https://github.com/mohd892020-blip/falling-sticks (2026-10-29, user's choice after being told the code becomes visible). GitHub Pages: the user turns it on (Settings › Pages › master / root) → https://mohd892020-blip.github.io/falling-sticks/. Commit + push after each finished version when the user agrees. Never put the developer code in any file.
 
 Always reply to me in Arabic (Palestinian dialect), but keep code, commands and file names in English.
