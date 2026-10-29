@@ -338,6 +338,8 @@ textarea{width:100%;min-height:140px;border-radius:12px;border:1px solid var(--c
 #wcard small{display:block;font-weight:800;font-size:.8rem;letter-spacing:.22em;color:#fff;opacity:.9;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 #wcard b{display:block;font-family:var(--f-disp);font-weight:400;font-size:2.5rem;line-height:1.1;color:#fff;text-shadow:0 0 6px var(--wc),0 0 18px var(--wc),0 0 38px var(--wc)}
 @keyframes wcard{0%{opacity:0;transform:scale(.94)}7%{opacity:1}11%{opacity:.25}15%{opacity:1}19%{opacity:.5}25%,82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.03)}}
+.sn.lock.devo{outline:2px dashed #f59e0b;outline-offset:2px;opacity:1}
+.ver[data-a]{cursor:default;user-select:none;-webkit-user-select:none}
 .lvchip{display:inline-flex;align-items:center;padding:3px;border-radius:var(--r-pill);background:var(--panel);border:1px solid var(--c-line);color:var(--c-text);font-weight:800;font-size:.8rem;cursor:pointer}
 .lvchip .ring{width:34px;height:34px;border-radius:50%;background:conic-gradient(var(--c-accent) calc(var(--p) * 1%),var(--well) 0);display:grid;place-items:center;flex:none}
 .lvchip .ring b{width:27px;height:27px;border-radius:50%;background:var(--panel-2);display:grid;place-items:center;font-family:var(--f-disp);font-weight:400;font-size:.95rem;line-height:1}
@@ -472,7 +474,7 @@ html.reduce *,html.reduce *::before,html.reduce *::after{animation-duration:.001
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '2.4.0';
+const VERSION = '2.5.0';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
@@ -531,9 +533,9 @@ const CFG = {
 
 /** Graphics presets. `auto` picks one of these by measuring FPS. */
 const QUALITY = {
-  high:   { dpr: 2,   particles: 320, pmul: 1,   glow: true,  trail: 3, cars: 4, clouds: 4, rain: 70, ads: true },
-  medium: { dpr: 1.5, particles: 170, pmul: .6,  glow: true,  trail: 2, cars: 2, clouds: 3, rain: 40, ads: true },
-  low:    { dpr: 1,   particles: 70,  pmul: .35, glow: false, trail: 0, cars: 0, clouds: 2, rain: 16, ads: false },
+  high:   { dpr: 3,   particles: 320, pmul: 1,   glow: true,  trail: 3, cars: 4, clouds: 4, rain: 70, ads: true },   // dpr is capped by the screen
+  medium: { dpr: 2,   particles: 200, pmul: .7,  glow: true,  trail: 2, cars: 2, clouds: 3, rain: 40, ads: true },
+  low:    { dpr: 1.5, particles: 90,  pmul: .4,  glow: false, trail: 0, cars: 0, clouds: 2, rain: 16, ads: false },
 };
 
 /** Gameplay colours (the only colours a target can be). */
@@ -575,10 +577,10 @@ const SHOP = {
     { id: 'ice', price: 600 }, { id: 'gold', price: 1200 },
   ],
   platform: [
-    { id: 'classic', price: 0 }, { id: 'neon', price: 250 }, { id: 'chrome', price: 450 }, { id: 'holo', price: 700 },
+    { id: 'world', price: 0 }, { id: 'classic', price: 0 },   // 'world' = the current world's own design { id: 'neon', price: 250 }, { id: 'chrome', price: 450 }, { id: 'holo', price: 700 },
   ],
   arch: [
-    { id: 'classic', price: 0 }, { id: 'chrome', price: 300 }, { id: 'neon', price: 500 }, { id: 'gold', price: 900 },
+    { id: 'world', price: 0 }, { id: 'classic', price: 0 }, { id: 'chrome', price: 300 }, { id: 'neon', price: 500 }, { id: 'gold', price: 900 },
   ],
   bg: [
     { id: 'classic', price: 0 }, { id: 'synth', price: 500 }, { id: 'rain', price: 600 }, { id: 'aurora', price: 800 },
@@ -759,7 +761,9 @@ const STR = {
     lvUp: 'مستوى {0}!', welcomeLv: 'إنت بمستوى {0}!', welcomeLvD: 'تقدّمك لهلأ انحسب خبرة.', evRamadan: 'فوانيس رمضان', evRamadanD: 'برمضان بتنزل عصي فوانيس بنفسجية كل شوي. امسكها — عمرها ما بتخسّرك قلب — واجمع جوايز.',
     evProg: '{0}/{1} فانوس', evEid: 'عيد مبارك!', evEidD: 'الهدية اليومية دبل طول أيام العيد.', evReward: 'جايزة الفوانيس!', evOnly: 'مناسبة', sAssist: 'مساعدة ذكية',
     sAssistD: 'بعد 3 محاولات فاشلة، المرحلة بتصير أسهل شوي.', assistOn: 'المساعدة الذكية شغّالة: هالمرحلة أسهل شوي.',
-    clog: [['2.4.0', 'ملف لاعب فيه خبرة ومستويات وألقاب ومسار جوايز ببلاش، ألبوم ملصقات، ميكانيكيات جديدة (عصي بلونين، هوا، عصي طالعة)، مساعدة ذكية، مناسبة فوانيس رمضان وهدية العيد، وموسيقى بتعلى مع الكومبو وحركة أنعم.'], ['2.3.0', 'الثيم الافتراضي صار نهار، وسجل حفظ فيه نسخ احتياطية تلقائية واسترجاع وسجل للتقدّم.'], ['2.2.0', 'عرض تعريفي أول مرة، خريطة مراحل بطريق متعرّج، 6 ثيمات (الغروب افتراضي)، روابط تحدّي للأصحاب، منافسين آليين معلنين، و5 لغات جديدة.'], ['2.1.0', 'لمس دقيق مع قفاز بيمسك العصا، مسكة سريعة، توقف لحظي عند الضربة، درون بقوى خاصة، بسّة الحارة، زعماء إلهم روبوت وحركات خاصة، مراحل صمود ومطر ذهبي وظلام، مهام يومية، إكسسوارات بيبو، عدّاد FPS.'], ['2.0.0', 'إعادة بناء كاملة: قائمة رئيسية، 4 أنماط لعب، متجر، 26 إنجاز، إحصائيات، صدارة محلية، إعدادات كاملة، موسيقى مولّدة لكل عالم، شخصية بيبو، مدينة أركيد متحركة، تعليمات تفاعلية، PWA.'], ['1.0.0', 'النسخة الأولى: 150 مرحلة، خريطة ونجوم، كومبو.']],
+    it_arch_world: 'تصميم العالم', it_platform_world: 'تصميم العالم', devT: 'وضع المطوّر', devPinD: 'اكتب رمز صاحب اللعبة.', devUnlock: 'افتح',
+    devWrong: 'الرمز غلط', devOn: 'وضع المطوّر شغّال: كل المراحل مفتوحة', devOff: 'وضع المطوّر انطفى', devTest: 'تجربة — ما في إشي بينحفظ', devJumpT: 'روح لمرحلة',
+    clog: [['2.5.0', 'كل عالم إله قوس ومنصة بتصميمه الخاص، وقطط وجراوي وبط وأرانب بتتمشّى تحت العصي، وشلنا اللافتات المكتوبة من المدينة عشان العصي تبيّن أوضح.'], ['2.4.1', 'رسومات أوضح على التلفون، لعب أنعم بدون تقطيع، وإيد وحدة بس لما تلمس بأكثر من إصبع.'], ['2.4.0', 'ملف لاعب فيه خبرة ومستويات وألقاب ومسار جوايز ببلاش، ألبوم ملصقات، ميكانيكيات جديدة (عصي بلونين، هوا، عصي طالعة)، مساعدة ذكية، مناسبة فوانيس رمضان وهدية العيد، وموسيقى بتعلى مع الكومبو وحركة أنعم.'], ['2.3.0', 'الثيم الافتراضي صار نهار، وسجل حفظ فيه نسخ احتياطية تلقائية واسترجاع وسجل للتقدّم.'], ['2.2.0', 'عرض تعريفي أول مرة، خريطة مراحل بطريق متعرّج، 6 ثيمات (الغروب افتراضي)، روابط تحدّي للأصحاب، منافسين آليين معلنين، و5 لغات جديدة.'], ['2.1.0', 'لمس دقيق مع قفاز بيمسك العصا، مسكة سريعة، توقف لحظي عند الضربة، درون بقوى خاصة، بسّة الحارة، زعماء إلهم روبوت وحركات خاصة، مراحل صمود ومطر ذهبي وظلام، مهام يومية، إكسسوارات بيبو، عدّاد FPS.'], ['2.0.0', 'إعادة بناء كاملة: قائمة رئيسية، 4 أنماط لعب، متجر، 26 إنجاز، إحصائيات، صدارة محلية، إعدادات كاملة، موسيقى مولّدة لكل عالم، شخصية بيبو، مدينة أركيد متحركة، تعليمات تفاعلية، PWA.'], ['1.0.0', 'النسخة الأولى: 150 مرحلة، خريطة ونجوم، كومبو.']],
     gift: 'المكافأة', mins: '{0} د', hours: '{0} س {1} د',
     pw_heart: '+1 ❤️', pw_slow: 'إبطاء!', pw_magnet: 'مغناطيس!', pw_x2: 'نقاط ×2', quick: 'سريع!', catSave: 'البسّة رجّعتها! 🐾', enraged: 'الزعيم عصّب! 😡',
     bossName: 'زعيم {0}', hudSurvive: 'صمود · {0} ث', survivedN: 'صمدت {0} من {1} ثانية',
@@ -844,7 +848,9 @@ const STR = {
     lvUp: 'Level {0}!', welcomeLv: 'You are level {0}!', welcomeLvD: 'Your progress so far has been turned into XP.', evRamadan: 'Ramadan lanterns', evRamadanD: 'During Ramadan, purple lantern sticks fall now and then. Catch them — they never cost a heart — and collect rewards.',
     evProg: '{0}/{1} lanterns', evEid: 'Eid Mubarak!', evEidD: 'Daily rewards are doubled during Eid.', evReward: 'Lantern reward!', evOnly: 'Event', sAssist: 'Smart assist',
     sAssistD: 'After 3 failed tries, a level gets a little easier.', assistOn: 'Smart assist is on: this level is a little easier.',
-    clog: [['2.4.0', 'Player profile with XP, levels, titles and a free reward track; sticker album; new mechanics (two-tone, wind, rising sticks); smart assist; Ramadan lantern event and Eid gift; music that grows with your combo and smoother animation.'], ['2.3.0', 'Day is now the default theme; new save history with automatic backups, restore and a progress log.'], ['2.2.0', 'First-run intro, saga-style level map, 6 themes (Sunset by default), friend challenge links, labelled rival bots and 5 new languages.'], ['2.1.0', 'Precise touch with a grabbing glove, quick catches, hit-stop, power-up drones, the street cat, boss robots with twists, survival / golden rain / lights-out levels, daily missions, Bebo accessories, FPS counter.'], ['2.0.0', 'Full rebuild: main menu, 4 game modes, shop, 26 achievements, stats, local leaderboard, full settings, generated music per world, Bebo the mascot, animated arcade city, interactive tutorial, PWA.'], ['1.0.0', 'First version: 150 levels, map and stars, combo.']],
+    it_arch_world: 'World design', it_platform_world: 'World design', devT: 'Developer mode', devPinD: 'Enter the owner code.', devUnlock: 'Unlock',
+    devWrong: 'Wrong code', devOn: 'Developer mode on: every level is open', devOff: 'Developer mode off', devTest: 'Test run — nothing is saved', devJumpT: 'Go to level',
+    clog: [['2.5.0', 'Every world has its own arch and platform; cats, puppies, ducks and rabbits stroll under the sticks; the city signs are gone so the sticks are easier to see.'], ['2.4.1', 'Sharper graphics on phones, smoother play without hitches, and a single hand when you touch with several fingers.'], ['2.4.0', 'Player profile with XP, levels, titles and a free reward track; sticker album; new mechanics (two-tone, wind, rising sticks); smart assist; Ramadan lantern event and Eid gift; music that grows with your combo and smoother animation.'], ['2.3.0', 'Day is now the default theme; new save history with automatic backups, restore and a progress log.'], ['2.2.0', 'First-run intro, saga-style level map, 6 themes (Sunset by default), friend challenge links, labelled rival bots and 5 new languages.'], ['2.1.0', 'Precise touch with a grabbing glove, quick catches, hit-stop, power-up drones, the street cat, boss robots with twists, survival / golden rain / lights-out levels, daily missions, Bebo accessories, FPS counter.'], ['2.0.0', 'Full rebuild: main menu, 4 game modes, shop, 26 achievements, stats, local leaderboard, full settings, generated music per world, Bebo the mascot, animated arcade city, interactive tutorial, PWA.'], ['1.0.0', 'First version: 150 levels, map and stars, combo.']],
     gift: 'Reward', mins: '{0}m', hours: '{0}h {1}m',
     pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', catSave: 'The cat saved it! 🐾', enraged: 'The boss is furious! 😡',
     bossName: 'Boss of {0}', hudSurvive: 'Survive · {0}s', survivedN: 'Survived {0} of {1} s',
@@ -958,7 +964,9 @@ STR.fr = {
     lvUp: 'Niveau {0} !', welcomeLv: 'Tu es niveau {0} !', welcomeLvD: 'Ta progression a été convertie en XP.', evRamadan: 'Lanternes du Ramadan', evRamadanD: 'Pendant le Ramadan, des bâtons-lanternes violets tombent de temps en temps. Attrape-les — ils ne coûtent jamais de cœur — et gagne des récompenses.',
     evProg: '{0}/{1} lanternes', evEid: 'Aïd Moubarak !', evEidD: 'Les récompenses quotidiennes sont doublées pendant l’Aïd.', evReward: 'Récompense lanternes !',
     evOnly: 'Événement', sAssist: 'Aide intelligente', sAssistD: 'Après 3 échecs, le niveau devient un peu plus facile.', assistOn: 'Aide intelligente active : ce niveau est un peu plus facile.',
-    clog: [['2.4.0', 'Profil joueur avec XP, niveaux, titres et parcours de récompenses gratuit ; album d’autocollants ; nouvelles mécaniques (bicolores, vent, bâtons montants) ; aide intelligente ; événement des lanternes du Ramadan et cadeau de l’Aïd ; musique qui monte avec le combo et animations plus fluides.'], ['2.3.0', 'Le thème Jour devient le thème par défaut ; nouvel historique avec sauvegardes automatiques, restauration et journal de progression.'], ['2.2.0', 'Intro au premier lancement, carte des niveaux en chemin sinueux, 6 thèmes (Coucher de soleil par défaut), défis entre amis par lien, rivaux robots identifiés et 5 nouvelles langues.'], ['2.1.0', 'Toucher précis avec un gant attrapeur, prises rapides, arrêt sur impact, drones à pouvoirs, le chat des rues, robots boss avec surprises, niveaux survie / pluie d’or / lumières éteintes, missions du jour, accessoires pour Bebo, compteur FPS.'], ['2.0.0', 'Refonte complète : menu principal, 4 modes de jeu, boutique, 26 succès, stats, classement local, réglages complets, musique générée pour chaque monde, Bebo la mascotte, ville d’arcade animée, tutoriel interactif, PWA.'], ['1.0.0', 'Première version : 150 niveaux, carte et étoiles, combo.']],
+    it_arch_world: 'Design du monde', it_platform_world: 'Design du monde', devT: 'Mode développeur', devPinD: 'Entre le code du propriétaire.', devUnlock: 'Déverrouiller',
+    devWrong: 'Code incorrect', devOn: 'Mode développeur activé : tous les niveaux sont ouverts', devOff: 'Mode développeur désactivé', devTest: 'Partie test — rien n’est enregistré', devJumpT: 'Aller au niveau',
+    clog: [['2.5.0', 'Chaque monde a son arche et sa plateforme ; chats, chiots, canards et lapins se promènent sous les bâtons ; les enseignes de la ville ont disparu pour mieux voir les bâtons.'], ['2.4.1', 'Graphismes plus nets sur téléphone, jeu plus fluide sans à-coups, et une seule main quand tu touches avec plusieurs doigts.'], ['2.4.0', 'Profil joueur avec XP, niveaux, titres et parcours de récompenses gratuit ; album d’autocollants ; nouvelles mécaniques (bicolores, vent, bâtons montants) ; aide intelligente ; événement des lanternes du Ramadan et cadeau de l’Aïd ; musique qui monte avec le combo et animations plus fluides.'], ['2.3.0', 'Le thème Jour devient le thème par défaut ; nouvel historique avec sauvegardes automatiques, restauration et journal de progression.'], ['2.2.0', 'Intro au premier lancement, carte des niveaux en chemin sinueux, 6 thèmes (Coucher de soleil par défaut), défis entre amis par lien, rivaux robots identifiés et 5 nouvelles langues.'], ['2.1.0', 'Toucher précis avec un gant attrapeur, prises rapides, arrêt sur impact, drones à pouvoirs, le chat des rues, robots boss avec surprises, niveaux survie / pluie d’or / lumières éteintes, missions du jour, accessoires pour Bebo, compteur FPS.'], ['2.0.0', 'Refonte complète : menu principal, 4 modes de jeu, boutique, 26 succès, stats, classement local, réglages complets, musique générée pour chaque monde, Bebo la mascotte, ville d’arcade animée, tutoriel interactif, PWA.'], ['1.0.0', 'Première version : 150 niveaux, carte et étoiles, combo.']],
     gift: 'Récompense', mins: '{0} min', hours: '{0} h {1} min',
     pw_heart: '+1 ❤️', pw_slow: 'Ralenti !', pw_magnet: 'Aimant !', pw_x2: 'Points doublés !', quick: 'Rapide !', catSave: 'Le chat l’a sauvé ! 🐾', enraged: 'Le boss est furieux ! 😡',
     bossName: 'Boss : {0}', hudSurvive: 'Survie · {0} s', survivedN: 'Survie : {0} s sur {1}',
@@ -1060,7 +1068,9 @@ STR.es = {
     evRamadanD: 'Durante el Ramadán caen de vez en cuando palitos-farol morados. Atrápalos (nunca te quitan un corazón) y consigue premios.', evProg: '{0}/{1} faroles',
     evEid: '¡Eid Mubarak!', evEidD: 'Durante el Eid las recompensas diarias valen el doble.', evReward: '¡Premio de faroles!', evOnly: 'Evento', sAssist: 'Ayuda inteligente',
     sAssistD: 'Tras 3 intentos fallidos, el nivel se vuelve un poco más fácil.', assistOn: 'Ayuda inteligente activa: este nivel es un poco más fácil.',
-    clog: [['2.4.0', 'Perfil de jugador con XP, niveles, títulos y ruta de premios gratis; álbum de pegatinas; nuevas mecánicas (bicolores, viento, palitos que suben); ayuda inteligente; evento de faroles de Ramadán y regalo de Eid; música que crece con el combo y animaciones más suaves.'], ['2.3.0', 'Día es ahora el tema por defecto; nuevo historial con copias automáticas, restauración y registro de progreso.'], ['2.2.0', 'Intro al primer inicio, mapa de niveles con camino sinuoso, 6 temas (Atardecer por defecto), retos a amigos por enlace, rivales bot identificados y 5 idiomas nuevos.'], ['2.1.0', 'Toque preciso con un guante que agarra, atrapadas rápidas, pausa de impacto, drones con poderes, el gato callejero, jefes robot con sorpresas, niveles de supervivencia / lluvia dorada / apagón, misiones diarias, accesorios para Bebo, contador de FPS.'], ['2.0.0', 'Reconstrucción completa: menú principal, 4 modos de juego, tienda, 26 logros, estadísticas, ranking local, ajustes completos, música generada para cada mundo, Bebo la mascota, ciudad arcade animada, tutorial interactivo, PWA.'], ['1.0.0', 'Primera versión: 150 niveles, mapa y estrellas, combo.']],
+    it_arch_world: 'Diseño del mundo', it_platform_world: 'Diseño del mundo', devT: 'Modo desarrollador', devPinD: 'Introduce el código del propietario.', devUnlock: 'Desbloquear',
+    devWrong: 'Código incorrecto', devOn: 'Modo desarrollador activado: todos los niveles están abiertos', devOff: 'Modo desarrollador desactivado', devTest: 'Partida de prueba: no se guarda nada', devJumpT: 'Ir al nivel',
+    clog: [['2.5.0', 'Cada mundo tiene su propio arco y plataforma; gatos, cachorros, patos y conejos pasean bajo los palitos; quitamos los letreros de la ciudad para ver mejor los palitos.'], ['2.4.1', 'Gráficos más nítidos en el móvil, juego más fluido sin tirones y una sola mano al tocar con varios dedos.'], ['2.4.0', 'Perfil de jugador con XP, niveles, títulos y ruta de premios gratis; álbum de pegatinas; nuevas mecánicas (bicolores, viento, palitos que suben); ayuda inteligente; evento de faroles de Ramadán y regalo de Eid; música que crece con el combo y animaciones más suaves.'], ['2.3.0', 'Día es ahora el tema por defecto; nuevo historial con copias automáticas, restauración y registro de progreso.'], ['2.2.0', 'Intro al primer inicio, mapa de niveles con camino sinuoso, 6 temas (Atardecer por defecto), retos a amigos por enlace, rivales bot identificados y 5 idiomas nuevos.'], ['2.1.0', 'Toque preciso con un guante que agarra, atrapadas rápidas, pausa de impacto, drones con poderes, el gato callejero, jefes robot con sorpresas, niveles de supervivencia / lluvia dorada / apagón, misiones diarias, accesorios para Bebo, contador de FPS.'], ['2.0.0', 'Reconstrucción completa: menú principal, 4 modos de juego, tienda, 26 logros, estadísticas, ranking local, ajustes completos, música generada para cada mundo, Bebo la mascota, ciudad arcade animada, tutorial interactivo, PWA.'], ['1.0.0', 'Primera versión: 150 niveles, mapa y estrellas, combo.']],
     gift: 'Premio', mins: '{0} min', hours: '{0} h {1} min',
     pw_heart: '+1 ❤️', pw_slow: '¡Cámara lenta!', pw_magnet: '¡Imán!', pw_x2: '¡Puntos dobles!', quick: '¡Rápido!', catSave: '¡El gato lo salvó! 🐾', enraged: '¡El jefe está furioso! 😡',
     bossName: 'Jefe de {0}', hudSurvive: 'Sobrevive · {0}s', survivedN: 'Sobreviviste {0} de {1} s',
@@ -1161,7 +1171,9 @@ STR.pt = {
     welcomeLvD: 'Seu progresso até agora virou XP.', evRamadan: 'Lanternas do Ramadã', evRamadanD: 'Durante o Ramadã, bastões-lanterna roxos caem de vez em quando. Pegue-os — eles nunca custam um coração — e ganhe prêmios.',
     evProg: '{0}/{1} lanternas', evEid: 'Eid Mubarak!', evEidD: 'As recompensas diárias valem o dobro durante o Eid.', evReward: 'Prêmio das lanternas!', evOnly: 'Evento',
     sAssist: 'Ajuda inteligente', sAssistD: 'Depois de 3 tentativas sem sucesso, o nível fica um pouco mais fácil.', assistOn: 'Ajuda inteligente ligada: este nível está um pouco mais fácil.',
-    clog: [['2.4.0', 'Perfil de jogador com XP, níveis, títulos e trilha de prêmios grátis; álbum de figurinhas; novas mecânicas (bicolores, vento, bastões que sobem); ajuda inteligente; evento das lanternas do Ramadã e presente do Eid; música que cresce com o combo e animações mais suaves.'], ['2.3.0', 'Dia agora é o tema padrão; novo histórico com backups automáticos, restauração e registro de progresso.'], ['2.2.0', 'Intro na primeira abertura, mapa de fases com caminho sinuoso, 6 temas (Pôr do sol por padrão), desafios entre amigos por link, rivais bot identificados e 5 novos idiomas.'], ['2.1.0', 'Toque preciso com luva que agarra, capturas rápidas, hit-stop, drones com poderes, o gato de rua, robôs chefões com surpresas, níveis de sobrevivência / chuva dourada / luzes apagadas, missões diárias, acessórios do Bebo, contador de FPS.'], ['2.0.0', 'Reconstrução completa: menu principal, 4 modos de jogo, loja, 26 conquistas, estatísticas, ranking local, ajustes completos, música gerada para cada mundo, o mascote Bebo, cidade arcade animada, tutorial interativo, PWA.'], ['1.0.0', 'Primeira versão: 150 níveis, mapa e estrelas, combo.']],
+    it_arch_world: 'Design do mundo', it_platform_world: 'Design do mundo', devT: 'Modo desenvolvedor', devPinD: 'Digite o código do dono.', devUnlock: 'Desbloquear',
+    devWrong: 'Código errado', devOn: 'Modo desenvolvedor ligado: todos os níveis estão abertos', devOff: 'Modo desenvolvedor desligado', devTest: 'Partida de teste — nada é salvo', devJumpT: 'Ir para o nível',
+    clog: [['2.5.0', 'Cada mundo tem seu próprio arco e plataforma; gatos, filhotes, patos e coelhos passeiam sob os bastões; as placas da cidade saíram para os bastões aparecerem melhor.'], ['2.4.1', 'Gráficos mais nítidos no celular, jogo mais fluido sem travadas e uma só mão ao tocar com vários dedos.'], ['2.4.0', 'Perfil de jogador com XP, níveis, títulos e trilha de prêmios grátis; álbum de figurinhas; novas mecânicas (bicolores, vento, bastões que sobem); ajuda inteligente; evento das lanternas do Ramadã e presente do Eid; música que cresce com o combo e animações mais suaves.'], ['2.3.0', 'Dia agora é o tema padrão; novo histórico com backups automáticos, restauração e registro de progresso.'], ['2.2.0', 'Intro na primeira abertura, mapa de fases com caminho sinuoso, 6 temas (Pôr do sol por padrão), desafios entre amigos por link, rivais bot identificados e 5 novos idiomas.'], ['2.1.0', 'Toque preciso com luva que agarra, capturas rápidas, hit-stop, drones com poderes, o gato de rua, robôs chefões com surpresas, níveis de sobrevivência / chuva dourada / luzes apagadas, missões diárias, acessórios do Bebo, contador de FPS.'], ['2.0.0', 'Reconstrução completa: menu principal, 4 modos de jogo, loja, 26 conquistas, estatísticas, ranking local, ajustes completos, música gerada para cada mundo, o mascote Bebo, cidade arcade animada, tutorial interativo, PWA.'], ['1.0.0', 'Primeira versão: 150 níveis, mapa e estrelas, combo.']],
     gift: 'Prêmio', mins: '{0}min', hours: '{0}h {1}min',
     pw_heart: '+1 ❤️', pw_slow: 'Câmera lenta!', pw_magnet: 'Ímã!', pw_x2: 'Pontos em dobro!', quick: 'Rápido!', catSave: 'O gato salvou! 🐾', enraged: 'O chefão está furioso! 😡',
     bossName: 'Chefão · {0}', hudSurvive: 'Sobreviva · {0}s', survivedN: 'Sobreviveu {0} de {1} s',
@@ -1262,7 +1274,9 @@ STR.tr = {
     evRamadanD: 'Ramazan boyunca ara sıra mor fener çubuklar düşer. Onları yakala (asla kalp kaybettirmezler) ve ödül kazan.', evProg: '{0}/{1} fener', evEid: 'İyi bayramlar!',
     evEidD: 'Bayram boyunca günlük ödüller iki katı.', evReward: 'Fener ödülü!', evOnly: 'Etkinlik', sAssist: 'Akıllı yardım', sAssistD: '3 başarısız denemeden sonra seviye biraz kolaylaşır.',
     assistOn: 'Akıllı yardım açık: bu seviye biraz daha kolay.',
-    clog: [['2.4.0', 'XP, seviyeler, unvanlar ve ücretsiz ödül yolu olan oyuncu profili; çıkartma albümü; yeni mekanikler (iki renkli, rüzgâr, yükselen çubuklar); akıllı yardım; Ramazan fener etkinliği ve bayram hediyesi; komboyla yükselen müzik ve daha akıcı animasyonlar.'], ['2.3.0', 'Varsayılan tema artık Gündüz; otomatik yedekler, geri yükleme ve ilerleme günlüğü içeren yeni kayıt geçmişi.'], ['2.2.0', 'İlk açılış tanıtımı, kıvrımlı yol şeklinde bölüm haritası, 6 tema (varsayılan Gün batımı), arkadaşlara bağlantıyla meydan okuma, etiketli bot rakipler ve 5 yeni dil.'], ['2.1.0', 'Kapma eldiveniyle hassas dokunma, hızlı yakalamalar, vuruş duraksaması, güç taşıyan dronlar, sokak kedisi, sürprizli boss robotlar, hayatta kalma / altın yağmuru / karanlık seviyeler, günlük görevler, Bebo aksesuarları, FPS sayacı.'], ['2.0.0', 'Baştan yeniden yapıldı: ana menü, 4 oyun modu, mağaza, 26 başarım, istatistikler, yerel sıralama, tam ayarlar, her dünyaya özel üretilen müzik, maskot Bebo, hareketli atari şehri, etkileşimli eğitim, PWA.'], ['1.0.0', 'İlk sürüm: 150 seviye, harita ve yıldızlar, kombo.']],
+    it_arch_world: 'Dünya tasarımı', it_platform_world: 'Dünya tasarımı', devT: 'Geliştirici modu', devPinD: 'Sahip kodunu gir.', devUnlock: 'Kilidi aç',
+    devWrong: 'Yanlış kod', devOn: 'Geliştirici modu açık: tüm seviyeler açık', devOff: 'Geliştirici modu kapalı', devTest: 'Test oyunu — hiçbir şey kaydedilmez', devJumpT: 'Seviyeye git',
+    clog: [['2.5.0', 'Her dünyanın kendi kemeri ve platformu var; kediler, köpek yavruları, ördekler ve tavşanlar çubukların altında dolaşıyor; çubuklar daha iyi görünsün diye şehir tabelaları kaldırıldı.'], ['2.4.1', 'Telefonda daha net grafikler, takılmadan daha akıcı oyun ve birden fazla parmakla dokunduğunda tek el.'], ['2.4.0', 'XP, seviyeler, unvanlar ve ücretsiz ödül yolu olan oyuncu profili; çıkartma albümü; yeni mekanikler (iki renkli, rüzgâr, yükselen çubuklar); akıllı yardım; Ramazan fener etkinliği ve bayram hediyesi; komboyla yükselen müzik ve daha akıcı animasyonlar.'], ['2.3.0', 'Varsayılan tema artık Gündüz; otomatik yedekler, geri yükleme ve ilerleme günlüğü içeren yeni kayıt geçmişi.'], ['2.2.0', 'İlk açılış tanıtımı, kıvrımlı yol şeklinde bölüm haritası, 6 tema (varsayılan Gün batımı), arkadaşlara bağlantıyla meydan okuma, etiketli bot rakipler ve 5 yeni dil.'], ['2.1.0', 'Kapma eldiveniyle hassas dokunma, hızlı yakalamalar, vuruş duraksaması, güç taşıyan dronlar, sokak kedisi, sürprizli boss robotlar, hayatta kalma / altın yağmuru / karanlık seviyeler, günlük görevler, Bebo aksesuarları, FPS sayacı.'], ['2.0.0', 'Baştan yeniden yapıldı: ana menü, 4 oyun modu, mağaza, 26 başarım, istatistikler, yerel sıralama, tam ayarlar, her dünyaya özel üretilen müzik, maskot Bebo, hareketli atari şehri, etkileşimli eğitim, PWA.'], ['1.0.0', 'İlk sürüm: 150 seviye, harita ve yıldızlar, kombo.']],
     gift: 'Ödül', mins: '{0}dk', hours: '{0}sa {1}dk',
     pw_heart: '+1 ❤️', pw_slow: 'Ağır çekim!', pw_magnet: 'Mıknatıs!', pw_x2: 'Çift puan!', quick: 'Hızlı!', catSave: 'Kedi kurtardı! 🐾', enraged: 'Boss çok öfkeli! 😡',
     bossName: '{0} Bossu', hudSurvive: 'Hayatta kal · {0}sn', survivedN: 'Dayandın: {0}/{1} sn',
@@ -1362,7 +1376,9 @@ STR.id = {
     lvShort: 'Lv {0}', lvUp: 'Level {0}!', welcomeLv: 'Kamu level {0}!', welcomeLvD: 'Progresmu sejauh ini diubah jadi XP.', evRamadan: 'Lentera Ramadan', evRamadanD: 'Selama Ramadan, tongkat lentera ungu sesekali jatuh. Tangkap — tidak pernah mengurangi nyawa — dan kumpulkan hadiah.',
     evProg: '{0}/{1} lentera', evEid: 'Selamat Hari Raya!', evEidD: 'Hadiah harian jadi dua kali lipat selama Hari Raya.', evReward: 'Hadiah lentera!', evOnly: 'Event',
     sAssist: 'Bantuan pintar', sAssistD: 'Setelah gagal 3 kali, level jadi sedikit lebih mudah.', assistOn: 'Bantuan pintar aktif: level ini sedikit lebih mudah.',
-    clog: [['2.4.0', 'Profil pemain dengan XP, level, gelar, dan jalur hadiah gratis; album stiker; mekanik baru (dua warna, angin, tongkat naik); bantuan pintar; event lentera Ramadan dan hadiah Hari Raya; musik yang makin seru seiring kombo dan animasi lebih halus.'], ['2.3.0', 'Tema Siang kini jadi bawaan; riwayat simpan baru dengan cadangan otomatis, pemulihan, dan catatan progres.'], ['2.2.0', 'Intro saat pertama dibuka, peta level berupa jalan berliku, 6 tema (Senja sebagai bawaan), tantangan teman lewat tautan, rival bot berlabel, dan 5 bahasa baru.'], ['2.1.0', 'Sentuhan presisi dengan sarung tangan penangkap, tangkapan cepat, hit-stop, drone power-up, kucing jalanan, robot bos dengan kejutan, level bertahan / hujan emas / lampu padam, misi harian, aksesori Bebo, penghitung FPS.'], ['2.0.0', 'Dibangun ulang total: menu utama, 4 mode permainan, toko, 26 pencapaian, statistik, papan skor lokal, pengaturan lengkap, musik khusus tiap dunia, maskot Bebo, kota arcade beranimasi, tutorial interaktif, PWA.'], ['1.0.0', 'Versi pertama: 150 level, peta dan bintang, kombo.']],
+    it_arch_world: 'Desain dunia', it_platform_world: 'Desain dunia', devT: 'Mode pengembang', devPinD: 'Masukkan kode pemilik.', devUnlock: 'Buka',
+    devWrong: 'Kode salah', devOn: 'Mode pengembang aktif: semua level terbuka', devOff: 'Mode pengembang nonaktif', devTest: 'Uji coba — tidak ada yang disimpan', devJumpT: 'Ke level',
+    clog: [['2.5.0', 'Setiap dunia punya lengkungan dan platform sendiri; kucing, anak anjing, bebek, dan kelinci berjalan-jalan di bawah tongkat; papan tulisan kota dihapus agar tongkat lebih terlihat.'], ['2.4.1', 'Grafis lebih tajam di ponsel, permainan lebih mulus tanpa patah-patah, dan satu tangan saja saat menyentuh dengan beberapa jari.'], ['2.4.0', 'Profil pemain dengan XP, level, gelar, dan jalur hadiah gratis; album stiker; mekanik baru (dua warna, angin, tongkat naik); bantuan pintar; event lentera Ramadan dan hadiah Hari Raya; musik yang makin seru seiring kombo dan animasi lebih halus.'], ['2.3.0', 'Tema Siang kini jadi bawaan; riwayat simpan baru dengan cadangan otomatis, pemulihan, dan catatan progres.'], ['2.2.0', 'Intro saat pertama dibuka, peta level berupa jalan berliku, 6 tema (Senja sebagai bawaan), tantangan teman lewat tautan, rival bot berlabel, dan 5 bahasa baru.'], ['2.1.0', 'Sentuhan presisi dengan sarung tangan penangkap, tangkapan cepat, hit-stop, drone power-up, kucing jalanan, robot bos dengan kejutan, level bertahan / hujan emas / lampu padam, misi harian, aksesori Bebo, penghitung FPS.'], ['2.0.0', 'Dibangun ulang total: menu utama, 4 mode permainan, toko, 26 pencapaian, statistik, papan skor lokal, pengaturan lengkap, musik khusus tiap dunia, maskot Bebo, kota arcade beranimasi, tutorial interaktif, PWA.'], ['1.0.0', 'Versi pertama: 150 level, peta dan bintang, kombo.']],
     gift: 'Hadiah', mins: '{0} mnt', hours: '{0} jam {1} mnt',
     pw_heart: '+1 ❤️', pw_slow: 'Gerak lambat!', pw_magnet: 'Magnet!', pw_x2: 'Poin ganda!', quick: 'Cepat!', catSave: 'Kucingnya menyelamatkan! 🐾', enraged: 'Bosnya marah besar! 😡',
     bossName: 'Bos {0}', hudSurvive: 'Bertahan · {0} dtk', survivedN: 'Bertahan {0} dari {1} dtk',
@@ -1430,8 +1446,8 @@ function defaultSave() {
   return {
     v: SAVE_VERSION,
     stars: [], best: [], coins: 0, bossBeat: [],
-    settings: { music: .6, sfx: .85, muted: false, haptics: true, lang: detectLang(), quality: 'auto', autoQ: 'high', diff: 'normal', cb: false, reduce: reduce, big: false, left: false, fps: false, theme: CFG.defaultTheme, themePicked: false, assist: true },
-    shop: { owned: { stick: ['classic'], platform: ['classic'], arch: ['classic'], bg: ['classic'], bebo: ['none'] }, eq: { stick: 'classic', platform: 'classic', arch: 'classic', bg: 'classic', bebo: 'none' } },
+    settings: { music: .6, sfx: .85, muted: false, haptics: true, lang: detectLang(), quality: 'auto', autoQ: 'high', diff: 'normal', cb: false, reduce: reduce, big: false, left: false, fps: false, theme: CFG.defaultTheme, themePicked: false, assist: true, perfV: 1 },
+    shop: { owned: { stick: ['classic'], platform: ['world', 'classic'], arch: ['world', 'classic'], bg: ['classic'], bebo: ['none'] }, eq: { stick: 'classic', platform: 'world', arch: 'world', bg: 'classic', bebo: 'none' } },
     daily: { last: '', streak: 0, best: 0 },
     dailyCh: { date: '', done: false, best: 0 },
     ach: {},
@@ -1439,7 +1455,7 @@ function defaultSave() {
     missions: { date: '', list: [], bonus: false },
     lb: { endless: [], daily: [] },
     endlessBest: 0, tutorialDone: false, introSeen: false, seen: {}, practiceLv: 0, name: '', log: [], savedAt: 0,
-    xp: 0, xpInit: false, stickers: {}, fails: {}, seenWorld: {}, event: { id: '', n: 0, got: [] },
+    xp: 0, xpInit: false, kitV: 1, stickers: {}, fails: {}, seenWorld: {}, event: { id: '', n: 0, got: [] },
     rivals: { date: '', endless: 0, daily: 0 },
   };
 }
@@ -1478,9 +1494,10 @@ function migrate(d) {
     if (!s.shop.owned[c].includes(free)) s.shop.owned[c].unshift(free);
     if (!s.shop.owned[c].includes(s.shop.eq[c])) s.shop.eq[c] = free;
   });
-  if (!QUALITY[s.settings.autoQ]) s.settings.autoQ = 'high';
+  if (!QUALITY[s.settings.autoQ] || !d.settings || !d.settings.perfV) s.settings.autoQ = 'high';   // 2.4.1: new auto-quality rules, start again from high
   if (!CFG.diff[s.settings.diff]) s.settings.diff = 'normal';
   if (!LANGS[s.settings.lang]) s.settings.lang = 'en';
+  if (!d.kitV) ['arch', 'platform'].forEach(c => { if (s.shop.eq[c] === 'classic') s.shop.eq[c] = 'world'; });   // 2.5: the old default becomes the world design
   if (!s.settings.themePicked && s.settings.theme === 'sunset') s.settings.theme = CFG.defaultTheme;   // the old default moves to Day
   return s;
 }
@@ -1579,6 +1596,9 @@ const Sound = {
       case 'power': [660, 880, 1320, 1760].forEach((f, i) => N(f, .16, 'square', .045, i * .05)); Z(.3, .04, 5000, 'highpass'); break;
       case 'drone': N(180, .6, 'sawtooth', .018, 0, 240); break;
       case 'whiff': Z(.09, .03, 2400, 'bandpass'); break;
+      case 'yip': N(880, .06, 'square', .035, 0, 1250); N(980, .08, 'square', .03, .09, 1400); break;
+      case 'quack': N(520, .1, 'sawtooth', .04, 0, 380); N(500, .12, 'sawtooth', .035, .13, 360); break;
+      case 'boing': N(260, .22, 'sine', .07, 0, 820); break;
       case 'meow': { const p = x === 2 ? 1.25 : x === 1 ? 1.1 : 1; N(620 * p, .14, 'triangle', .06, 0, 1000 * p); N(1000 * p, .3, 'triangle', .06, .12, 560 * p); N(310 * p, .4, 'sine', .03, .02, 280 * p); break; }
       case 'purr': for (let i = 0; i < 6; i++) Z(.07, .05, 260, 'lowpass', i * .08); break;
       case 'throw': Z(.25, .08, 1800, 'bandpass'); N(300, .2, 'sawtooth', .04, 0, 600); break;
@@ -1671,24 +1691,33 @@ function rr(g, x, y, w, h, r) {
 
 /** Offscreen-canvas cache. Everything static is drawn once and blitted each frame. */
 const Cache = {
-  m: new Map(),
+  m: new Map(), big: [], stale: false,
   get(key, w, h, draw) {
     let c = this.m.get(key);
-    if (c) return c;
+    if (c) { if (c.big) { const i = this.big.indexOf(key); if (i < this.big.length - 1) { this.big.splice(i, 1); this.big.push(key); } } return c; }
     c = document.createElement('canvas');
     c.width = Math.max(1, Math.ceil(w * V.dpr)); c.height = Math.max(1, Math.ceil(h * V.dpr));
     const g = c.getContext('2d'); g.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
     c.cw = w; c.ch = h;
     draw(g, w, h, c);
     this.m.set(key, c);
+    if (w * h > V.W * V.H * .4) {                // full-screen layers are big at 3× — keep only the 4 most recent
+      c.big = true; this.big.push(key);
+      while (this.big.length > 4) this.m.delete(this.big.shift());
+    }
     return c;
   },
-  clear() { this.m.clear(); },
+  clear() { this.m.clear(); this.big.length = 0; this.stale = false; },
+  /** Fonts finished loading: redraw text sprites now, or after the run so play never freezes. */
+  refresh() { if (['play', 'countdown', 'cinema', 'pause'].includes(SM.state)) this.stale = true; else this.clear(); },
 };
+/** Draw part of a cached canvas at 1:1 (skips the empty middle of the machine layer). */
+function blitPart(g, c, x, y, w, h) { if (w <= 0 || h <= 0) return; const d = c.width / c.cw; g.drawImage(c, x * d, y * d, w * d, h * d, x, y, w, h); }
 function blit(g, c, x, y, w, h) { g.drawImage(c, x, y, w === undefined ? c.cw : w, h === undefined ? c.ch : h); }
 
 /** Recompute the layout (on start, resize, quality or text-size change). */
-function layout() {
+function layout(soft) {
+  if (soft && V.W === innerWidth && V.H === innerHeight && V.dpr === Math.min(window.devicePixelRatio || 1, Qcur.dpr)) return;
   const p = getComputedStyle($('#probe'));
   V.safeT = parseFloat(p.paddingTop) || 0; V.safeB = parseFloat(p.paddingBottom) || 0;
   const oldTop = V.arcTop, oldFy = V.fy;
@@ -1710,6 +1739,8 @@ function layout() {
   V.platX = V.sx + .44 * V.sw; V.platY = V.fy + 16 * u; V.platRX = .43 * V.sw; V.platRY = 30 * u;
   V.ms = .95 * u; V.mx = V.sx + .1 * V.sw; V.my = V.H - V.safeB - 8 * u;
   V.lcdFont = '400 ' + Math.round(15 * u) + 'px Lalezar, Cairo, sans-serif';
+  V.mTop = Math.max(arcY(V.archX0), arcY(V.archEnd)) + 32 * u;    // machine layer: arch band, column, platform band
+  V.mBot = V.platY - V.platRY - 26 * u; V.mCol = V.colX0 - 14 * u;
   Cache.clear();
   if (Game.sticks.length) {                     // keep sticks on their lanes / proportional height
     const k = oldFy > oldTop ? (V.fy - V.arcTop) / (oldFy - oldTop) : 1;
@@ -1813,39 +1844,7 @@ function drawCity(g, P) {
   g.fillStyle = gr; g.fillRect(0, hz - H * .22, W, H * .22);
   skyline(g, r, P, near, .09, .3, 42, 86, day ? .1 : .28, wc, P.roofs);
   if (P.season === 'ramadan') { drawGarland(g, -10, W + 10, hz - H * .44, H * .05, k); drawGarland(g, W * .04, W * .72, hz - H * .33, H * .035, k); }
-  // neon signs
   const refl = [];
-  const neonText = (txt, x, y, fs, c, font) => {
-    g.save(); g.font = font || ('400 ' + fs + 'px Lalezar, Cairo, sans-serif'); g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.shadowColor = c; g.shadowBlur = 16 * k; g.fillStyle = c; g.fillText(txt, x, y); g.fillText(txt, x, y);
-    g.shadowBlur = 3 * k; g.fillStyle = '#ffffff'; g.globalAlpha = .75; g.fillText(txt, x, y); g.restore();
-  };
-  const board = (x, y, bw, bh, c) => {
-    g.fillStyle = '#05060f'; g.fillRect(x + bw * .2, y + bh, 3 * k, 16 * k); g.fillRect(x + bw * .8, y + bh, 3 * k, 16 * k);
-    g.fillStyle = '#060818'; g.fillRect(x, y, bw, bh);
-    g.save(); g.shadowColor = c; g.shadowBlur = 12 * k; g.strokeStyle = c; g.lineWidth = 2.4 * k; g.strokeRect(x, y, bw, bh); g.restore();
-    refl.push(x, bw, c);
-  };
-  const bh1 = H * .075, by1 = hz - H * .2;
-  board(sx + sw * .05, by1, sw * .46, bh1, neon[1]); neonText('ARCADE', sx + sw * .28, by1 + bh1 * .54, Math.round(27 * u), neon[0]);
-  const bh2 = H * .058, by2 = hz - H * .115;
-  board(sx + sw * .55, by2, sw * .24, bh2, neon[3]); neonText('ألعاب', sx + sw * .67, by2 + bh2 * .5, 0, neon[2], '800 ' + Math.round(20 * u) + 'px Cairo, sans-serif');
-  // blinking billboard (dynamic flicker is drawn by Amb)
-  const ad = { x: sx + sw * .6, y: hz - H * .27, w: sw * .17, h: H * .048, c: neon[0], ph: r() * 4, sp: .9 + r() * .6 };
-  gr = g.createLinearGradient(ad.x, 0, ad.x + ad.w, 0); gr.addColorStop(0, rgba(neon[0], .5)); gr.addColorStop(1, rgba(neon[1], .5));
-  g.fillStyle = '#05060f'; g.fillRect(ad.x - 2, ad.y - 2, ad.w + 4, ad.h + 4); g.fillStyle = gr; g.fillRect(ad.x, ad.y, ad.w, ad.h);
-  neonText('HI-SCORE', ad.x + ad.w / 2, ad.y + ad.h / 2, Math.round(10 * u), '#ffffff');
-  if (P.ads) P.ads.push(ad);
-  // extra signs on wide screens, outside the stage
-  const extras = ['24/7', 'PLAY', 'كافيه', 'GAME ON', 'بيتزا', '★★★', 'سينما', 'INSERT COIN'];
-  let ex = 0;
-  for (let x = 14 * k; x < W - 70 * k; x += (110 + r() * 140) * k) {
-    if (x > sx - 90 * k && x < sx + sw) continue;
-    const txt = extras[ex % extras.length], c = neon[(ex + 1) & 3], y = hz - H * (.12 + r() * .16), bw = (txt.length * 9 + 22) * k, bh = 26 * k;
-    ex++;
-    board(x, y, bw, bh, neon[ex & 3]); neonText(txt, x + bw / 2, y + bh * .55, Math.round(15 * k), c, /[؀-ۿ]/.test(txt) ? '800 ' + Math.round(15 * k) + 'px Cairo, sans-serif' : null);
-    if (P.ads && ex % 2) P.ads.push({ x, y, w: bw, h: bh, c, ph: r() * 4, sp: .7 + r() * .8 });
-  }
   // wet ground with neon reflections and perspective grid
   gr = g.createLinearGradient(0, hz, 0, H);
   if (day) { gr.addColorStop(0, mix(sky[2], '#6b7488', .6)); gr.addColorStop(.2, '#4b5367'); gr.addColorStop(1, '#262b38'); }
@@ -1938,6 +1937,40 @@ const PLAT = {
   chrome:  { top: ['#e2e8f0', '#475569'], side: '#1e293b', rim: 'rgba(255,255,255,.9)' },
   holo:    { top: ['#0f3b4f', '#03121b'], side: '#020a10', rim: '#5eead4' },
 };
+/** Each world's own arch + platform (shown while "World design" is equipped; a shop item overrides it). */
+const KIT = [
+  { a: { out: '#07090d', mid: '#1f2937', band: '#475569', hi: 'rgba(255,255,255,.3)', rivet: '#94a3b8', edge: '#38bdf8' },
+    p: { top: ['#3a4252', '#0b0f19'], side: '#05070d', rim: '#38bdf8', deco: 'road' } },
+  { a: { out: '#05050a', mid: '#120a1f', band: '#2a1240', hi: '#22d3ee', rivet: '#ff3ea5', edge: '#ff3ea5', deco: 'neon2' },
+    p: { top: ['#2a0f3d', '#07040f'], side: '#05030a', rim: '#ff3ea5', deco: 'grid', line: 'rgba(255,62,165,.45)', strong: true } },
+  { a: { out: '#0a1626', mid: '#123049', band: '#c8a165', hi: 'rgba(255,255,255,.35)', rivet: '#e2c48f', deco: 'rope' },
+    p: { top: ['#a16a3a', '#4a2a12'], side: '#2a170a', rim: '#e2c48f', deco: 'deck' } },
+  { a: { out: '#1f0505', mid: '#7f1d1d', band: '#dc2626', hi: 'rgba(255,220,180,.6)', rivet: '#fbbf24', deco: 'lamps' },
+    p: { top: ['#9a3412', '#3b0a0a'], side: '#1c0505', rim: '#fbbf24', deco: 'rug', rings: ['#b91c1c', '#f59e0b', '#7f1d1d', '#fbbf24'] } },
+  { a: { out: '#0b1020', mid: '#334155', band: '#a5b4fc', hi: 'rgba(255,255,255,.85)', rivet: '#e0e7ff', deco: 'windows' },
+    p: { top: ['#64748b', '#1e293b'], side: '#0f172a', rim: '#c7d2fe', deco: 'helipad' } },
+  { a: { out: '#05140b', mid: '#14532d', band: '#3f7d4e', hi: 'rgba(220,255,220,.4)', rivet: '#a3e635', deco: 'leaves' },
+    p: { top: ['#57635a', '#1f2a22'], side: '#0d140f', rim: '#86efac', deco: 'stone' } },
+  { a: { out: '#1a0309', mid: '#881337', band: '#e11d48', hi: 'rgba(255,255,255,.5)', rivet: '#fde68a', deco: 'bulbs' },
+    p: { top: ['#9f1239', '#3f0716'], side: '#1f030b', rim: '#fbbf24', deco: 'velvet' } },
+  { a: { out: '#05080f', mid: '#1e293b', band: '#3b5a7a', hi: 'rgba(255,255,255,.9)', rivet: '#93c5fd', deco: 'gloss' },
+    p: { top: ['#1e3a5f', '#08121f'], side: '#040a12', rim: '#93c5fd', deco: 'puddle' } },
+  { a: Object.assign({ deco: 'bulbs' }, ARCH.gold),
+    p: { top: ['#f59e0b', '#7c2d12'], side: '#3b1206', rim: '#fde68a', deco: 'sun' } },
+  { a: { out: '#0b0420', mid: '#2e1065', band: '#6d28d9', hi: '#e9d5ff', rivet: '#f5d0fe', edge: '#c084fc', deco: 'stars' },
+    p: { top: ['#3b0764', '#0b0420'], side: '#05020f', rim: '#c084fc', deco: 'cosmos', strong: true } },
+];
+KIT.forEach((k, i) => { ARCH['w' + i] = k.a; PLAT['w' + i] = k.p; });
+/** Arch / platform id actually shown (the world's own design unless the player equipped a shop one). */
+const kitId = c => save.shop.eq[c] === 'world' ? 'w' + Render.world() : save.shop.eq[c];
+function glowDot(g, x, y, r, c) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, r * 3); gr.addColorStop(0, rgba(c, .55)); gr.addColorStop(1, rgba(c, 0));
+  g.fillStyle = gr; g.fillRect(x - r * 3, y - r * 3, r * 6, r * 6); g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+}
+function sparkle(g, x, y, r, c) {
+  g.fillStyle = c; g.beginPath(); g.moveTo(x, y - r * 2); g.quadraticCurveTo(x, y, x + r * 2, y); g.quadraticCurveTo(x, y, x, y + r * 2);
+  g.quadraticCurveTo(x, y, x - r * 2, y); g.quadraticCurveTo(x, y, x, y - r * 2); g.fill();
+}
 function archPath(g, x0, x1, dy, yf) {
   const st = Math.max(4, (x1 - x0) / 90);
   g.beginPath(); g.moveTo(x0, yf(x0) + dy);
@@ -1956,6 +1989,15 @@ function drawArch(g, th, x0, x1, yf, u) {
   if (A.edge) { g.save(); g.shadowColor = A.edge; g.shadowBlur = 10 * u; [-14.5, 15].forEach(dy => { P(dy); g.strokeStyle = A.edge; g.lineWidth = 2 * u; g.stroke(); }); g.restore(); }
   g.fillStyle = A.rivet;
   for (let x = x0 + 14 * u; x < x1 - 8 * u; x += 30 * u) { g.beginPath(); g.arc(x, yf(x) - 1 * u, 1.7 * u, 0, 7); g.fill(); }
+  const along = (step, f) => { let i = 0; for (let x = x0 + step; x < x1 - 8 * u; x += step) f(x, yf(x), i++); };
+  if (A.deco === 'neon2') { g.save(); g.shadowColor = A.hi; g.shadowBlur = 8 * u; P(-5.5); g.strokeStyle = A.hi; g.lineWidth = 1.6 * u; g.stroke(); g.restore(); }
+  else if (A.deco === 'rope') { g.strokeStyle = 'rgba(80,45,15,.75)'; g.lineWidth = 1.4 * u; g.beginPath(); along(5 * u, (x, y) => { g.moveTo(x - 2 * u, y - 8.5 * u); g.lineTo(x + 2 * u, y - 2.5 * u); }); g.stroke(); }
+  else if (A.deco === 'lamps') along(26 * u, (x, y) => glowDot(g, x, y - 5.5 * u, 2.4 * u, '#fdba74'));
+  else if (A.deco === 'bulbs') along(13 * u, (x, y, i) => glowDot(g, x, y - 5.5 * u, 1.9 * u, i % 2 ? '#fef08a' : '#ffffff'));
+  else if (A.deco === 'windows') { g.fillStyle = 'rgba(30,41,59,.55)'; along(9 * u, (x, y) => g.fillRect(x - 1 * u, y - 8.5 * u, 2 * u, 6 * u)); }
+  else if (A.deco === 'leaves') along(15 * u, (x, y, i) => { g.save(); g.translate(x, y - 14 * u); g.rotate(i % 2 ? .5 : -.5); g.fillStyle = i % 3 ? '#4ade80' : '#22c55e'; g.beginPath(); g.ellipse(0, 0, 4.5 * u, 2 * u, 0, 0, 7); g.fill(); g.restore(); });
+  else if (A.deco === 'gloss') { g.fillStyle = 'rgba(255,255,255,.55)'; along(34 * u, (x, y) => { g.beginPath(); g.ellipse(x, y - 9 * u, 6 * u, 1 * u, 0, 0, 7); g.fill(); }); }
+  else if (A.deco === 'stars') along(20 * u, (x, y, i) => sparkle(g, x, y - 5.5 * u, (i % 3 ? 1.6 : 2.4) * u, i % 2 ? '#f5d0fe' : '#ffffff'));
 }
 function drawColumn(g) {
   const u = V.u, H = V.H, x0 = V.colX0, x1 = V.colX1, top = V.colTop, bot = V.fy + 14 * u, bx0 = x0 + .02 * V.sw, bx1 = x1 - .025 * V.sw, cx = (x0 + x1) / 2;
@@ -2012,19 +2054,43 @@ function drawPlatform(g, x, y, rx, ry, u, th) {
   gr.addColorStop(0, P.top[0]); gr.addColorStop(1, P.top[1]);
   g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, 7); g.fill();
   g.strokeStyle = P.rim; g.lineWidth = 1.5 * u; g.beginPath(); g.ellipse(x, y, rx - 1, ry - .5, 0, Math.PI, Math.PI * 2); g.stroke();
+  if (P.deco) {                                  // world platforms
+    const D = P.deco, ring = (k, c, lw) => { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); g.ellipse(x, y, rx * k, ry * k, 0, 0, 7); g.stroke(); };
+    g.save(); g.beginPath(); g.ellipse(x, y, rx - 1, ry - .5, 0, 0, 7); g.clip();
+    if (D === 'road') { g.setLineDash([9 * u, 7 * u]); ring(.68, '#facc15', 2.2 * u); g.setLineDash([]); }
+    else if (D === 'grid') { for (let i = 1; i <= 4; i++) ring(i / 4.5, P.line, 1); g.beginPath(); for (let a = 0; a < 6.28; a += .39) { g.moveTo(x, y); g.lineTo(x + Math.cos(a) * rx, y + Math.sin(a) * ry); } g.stroke(); }
+    else if (D === 'deck') {
+      g.strokeStyle = 'rgba(40,20,5,.55)'; g.lineWidth = 1.4 * u; g.beginPath();
+      for (let px = x - rx + 8 * u; px < x + rx; px += 15 * u) { g.moveTo(px, y - ry); g.lineTo(px, y + ry); } g.stroke();
+      g.fillStyle = 'rgba(30,15,5,.6)'; for (let px = x - rx + 15 * u; px < x + rx; px += 15 * u) { g.fillRect(px - 4 * u, y - ry * .5, 1.4 * u, 1.4 * u); g.fillRect(px - 4 * u, y + ry * .4, 1.4 * u, 1.4 * u); }
+    }
+    else if (D === 'rug') P.rings.forEach((c, i) => { const k = 1 - (i + 1) * .19; g.fillStyle = c; g.beginPath(); g.ellipse(x, y, rx * k, ry * k, 0, 0, 7); g.fill(); });
+    else if (D === 'helipad') { ring(.62, '#facc15', 2.5 * u); g.fillStyle = 'rgba(255,255,255,.8)'; g.fillRect(x - rx * .22, y - 1.5 * u, rx * .44, 3 * u); g.fillRect(x - 1.5 * u, y - ry * .38, 3 * u, ry * .76); }
+    else if (D === 'stone') {
+      const r = rng32(77); g.strokeStyle = 'rgba(15,25,18,.6)'; g.lineWidth = 1.2 * u; g.beginPath();
+      for (let i = 0; i < 16; i++) { const a = r() * 6.28, d = .25 + r() * .6; g.moveTo(x + Math.cos(a) * rx * d, y + Math.sin(a) * ry * d); g.lineTo(x + Math.cos(a + .5) * rx * (d + .2), y + Math.sin(a + .5) * ry * (d + .2)); }
+      g.stroke(); g.fillStyle = 'rgba(132,204,22,.35)';
+      for (let i = 0; i < 10; i++) { g.beginPath(); g.ellipse(x + (r() - .5) * rx * 1.6, y + (r() - .5) * ry * 1.4, (3 + r() * 5) * u, (1.5 + r() * 2) * u, 0, 0, 7); g.fill(); }
+    }
+    else if (D === 'velvet') { ring(.8, '#fbbf24', 1.5 * u); ring(.5, 'rgba(251,191,36,.6)', 1 * u); g.fillStyle = '#fde68a'; for (let a = 0; a < 6.28; a += .52) { g.beginPath(); g.arc(x + Math.cos(a) * rx * .65, y + Math.sin(a) * ry * .65, 1.3 * u, 0, 7); g.fill(); } }
+    else if (D === 'puddle') { g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(x - rx * .2, y - ry * .3, rx * .5, ry * .2, -.1, 0, 7); g.fill(); for (let i = 1; i <= 3; i++) { g.strokeStyle = 'rgba(147,197,253,.4)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x + rx * .15, y + ry * .1, rx * .12 * i, ry * .12 * i, 0, 0, 7); g.stroke(); } }
+    else if (D === 'sun') for (let i = 0; i < 16; i++) { const a0 = i / 16 * 6.283, a1 = a0 + 6.283 / 32; g.fillStyle = i % 2 ? 'rgba(254,240,138,.35)' : 'rgba(251,146,60,.25)'; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a0) * rx * 1.1, y + Math.sin(a0) * ry * 1.1); g.lineTo(x + Math.cos(a1) * rx * 1.1, y + Math.sin(a1) * ry * 1.1); g.closePath(); g.fill(); }
+    else if (D === 'cosmos') { const r = rng32(99); for (let i = 0; i < 40; i++) { const d = (.6 + r() * 1.2) * u; g.fillStyle = i % 5 ? 'rgba(255,255,255,.7)' : '#f0abfc'; g.fillRect(x + (r() - .5) * rx * 2, y + (r() - .5) * ry * 2, d, d); } ring(.55, 'rgba(192,132,252,.5)', 1.2 * u); }
+    g.restore();
+  }
   if (th === 'holo') {
     g.strokeStyle = 'rgba(94,234,212,.35)'; g.lineWidth = 1;
     for (let i = 1; i <= 3; i++) { g.beginPath(); g.ellipse(x, y, rx * i / 4, ry * i / 4, 0, 0, 7); g.stroke(); }
     for (let a = 0; a < 6.28; a += .52) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * rx * .95, y + Math.sin(a) * ry * .95); g.stroke(); }
   } else if (th === 'chrome') {
     g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(x - rx * .25, y - ry * .35, rx * .45, ry * .18, -.1, 0, 7); g.fill();
-  } else { g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, rx * .62, ry * .62, 0, 0, 7); g.stroke(); }
+  } else if (!P.deco) { g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(x, y, rx * .62, ry * .62, 0, 0, 7); g.stroke(); }
 }
 function machineCanvas() {
-  const eq = save.shop.eq;
-  return Cache.get('mach|' + eq.arch + '|' + eq.platform, V.W, V.H, g => {
-    drawPlatform(g, V.platX, V.platY, V.platRX, V.platRY, V.u, eq.platform);
-    drawColumn(g); drawArch(g, eq.arch, V.archX0, V.archEnd, arcY, V.u); drawClamps(g); drawCamera(g);
+  const a = kitId('arch'), p = kitId('platform');
+  return Cache.get('mach|' + a + '|' + p, V.W, V.H, g => {
+    drawPlatform(g, V.platX, V.platY, V.platRX, V.platRY, V.u, p);
+    drawColumn(g); drawArch(g, a, V.archX0, V.archEnd, arcY, V.u); drawClamps(g); drawCamera(g);
   });
 }
 
@@ -2038,7 +2104,7 @@ function drawSym(g, x, y, s, k) {
 }
 /** LED strip under the arch, glowing in `color`. */
 function ledCanvas(color) {
-  const th = save.shop.eq.arch, cb = save.settings.cb, u = V.u, y0 = V.arcTop - 30 * u;
+  const th = kitId('arch'), cb = save.settings.cb, u = V.u, y0 = V.arcTop - 30 * u;
   return Cache.get('led|' + color + '|' + th + '|' + cb, V.W, V.sag + 80 * u, (g, w, h, c) => {
     c.y0 = y0; g.translate(0, -y0);
     const P = dy => archPath(g, V.archX0 + 4 * u, V.archEnd, dy, arcY), A = ARCH[th] || ARCH.classic;
@@ -2069,7 +2135,7 @@ function floorGlow(c) {
   });
 }
 function platRing(c, th) {
-  const u = V.u, rx = V.platRX, ry = V.platRY, pad = 20 * u, strong = th === 'neon' || th === 'holo';
+  const u = V.u, rx = V.platRX, ry = V.platRY, pad = 20 * u, strong = th === 'neon' || th === 'holo' || !!(PLAT[th] && PLAT[th].strong);
   return Cache.get('pr|' + c + '|' + th, rx * 2 + pad * 2, ry * 2 + pad * 2, g => {
     g.translate(rx + pad, ry + pad);
     g.strokeStyle = c; g.lineWidth = (strong ? 3 : 2) * u;
@@ -2079,7 +2145,7 @@ function platRing(c, th) {
   });
 }
 function vignette(c) {
-  return Cache.get('vig|' + c, V.W, V.H, (g, W, H) => {
+  return Cache.get('vig|' + c, V.W / 4, V.H / 4, (g, W, H) => {   // a soft gradient: drawn small, stretched
     const gr = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .3, W / 2, H / 2, Math.max(W, H) * .7);
     gr.addColorStop(0, rgba(c, 0)); gr.addColorStop(1, rgba(c, .35)); g.fillStyle = gr; g.fillRect(0, 0, W, H);
   });
@@ -2432,11 +2498,14 @@ const Render = {
     const fg = floorGlow(tgt); blit(g, fg, V.platX - fg.cw / 2, V.fy - fg.ch * .4);
     let sh = 0;
     if (Game.shake > 0 && !reduced()) { sh = Game.shake * 10 * u; g.translate((Math.random() - .5) * sh, (Math.random() - .5) * sh); }
-    blit(g, machineCanvas(), 0, 0, V.W, V.H);
+    const mc = machineCanvas();
+    if (V.mBot > V.mTop) { blitPart(g, mc, 0, 0, V.W, V.mTop); blitPart(g, mc, V.mCol, V.mTop, V.W - V.mCol, V.mBot - V.mTop); blitPart(g, mc, 0, V.mBot, V.W, V.H - V.mBot); }
+    else blit(g, mc, 0, 0, V.W, V.H);
     this.lights(g, tgt);
     const dark = Game.mode === 'attract' ? 0 : Boss.dark();
     if (dark > 0) { g.globalAlpha = dark; g.fillStyle = '#02030a'; g.fillRect(-20, -20, V.W + 40, V.H + 40); g.globalAlpha = 1; }
     Boss.draw(g);
+    Pets.draw(g);                                 // behind the sticks, so they never hide one
     drawSticks(g);
     drawWind(g);
     Cat.draw(g);
@@ -2452,13 +2521,13 @@ const Render = {
     if (Game.cflash > 0) { g.globalAlpha = Game.cflash * .4; g.fillStyle = '#fde047'; g.fillRect(0, 0, V.W, V.H); }
     if (Game.flash > 0) { g.globalAlpha = Math.min(.42, Game.flash); g.fillStyle = '#ef4444'; g.fillRect(0, 0, V.W, V.H); }
     g.globalAlpha = 1;
-    if (save.settings.fps) { g.font = '700 12px ui-monospace, Consolas, monospace'; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillStyle = '#4ade80'; g.fillText(Fps.v + ' FPS', V.W - 8, V.H - V.safeB - 6); }
+    if (save.settings.fps) { g.font = '700 12px ui-monospace, Consolas, monospace'; g.textAlign = 'right'; g.textBaseline = 'bottom'; g.fillStyle = '#4ade80'; g.fillText(Fps.v + ' FPS · ' + Fps.worst + ' ms · ' + V.dpr + '× ' + qualityKey(), V.W - 8, V.H - V.safeB - 6); }
     UI.drawMinis(tgt);
   },
   /** Dynamic machine lights: LED strip, chase dots, clamp warnings, column lamps, LCD. */
   lights(g, tgt) {
     const u = V.u, eq = save.shop.eq, t = this.t, boss = Game.mode !== 'attract' && Game.L && Game.L.boss;
-    const pr = platRing(tgt, eq.platform); blit(g, pr, V.platX - pr.cw / 2, V.platY - pr.ch / 2);
+    const pr = platRing(tgt, kitId('platform')); blit(g, pr, V.platX - pr.cw / 2, V.platY - pr.ch / 2);
     const led = ledCanvas(tgt);
     g.globalAlpha = boss && !reduced() ? .72 + .28 * Math.sin(t * 22) : 1; blit(g, led, 0, led.y0);
     if (this.ledFlash > 0) { g.globalAlpha = Math.min(1, this.ledFlash); blit(g, ledCanvas('#ffffff'), 0, led.y0); }
@@ -2532,6 +2601,7 @@ const Game = {
     if (mode === 'daily' && !seed) n = CFG.daily.minLevel + hashStr('fs-daily|' + today) % CFG.daily.span;
     if (mode === 'endless' || mode === 'tutorial' || mode === 'cinema') n = 1;
     this.n = this.startN = n;
+    this.test = mode === 'level' && Dev.on && n > unlockedLevel();   // owner test run: nothing is saved
     this.seed = seed || (mode === 'daily' ? hashStr('fs-seed|' + today) : (Math.random() * 4294967296) >>> 0);
     this.rng = rng32(this.seed);
     this.vs = Challenge.next; Challenge.next = null;      // the friend's score this run answers (if any)
@@ -2555,7 +2625,7 @@ const Game = {
     this.spawnT = .9;
     for (const s of this.sticks) this.resetStick(s);
     FX.clear(); Glove.clear(); Mascot.set('idle', .1);
-    Drone.reset(); Cat.reset(); Boss.setup();
+    Drone.reset(); Cat.reset(); Pets.reset(); Boss.setup();
     HUD.full();
   },
   /** Menu "attract mode": sticks drop on their own behind the menus. */
@@ -2565,7 +2635,7 @@ const Game = {
     this.ending = this.slowT = this.flash = this.shake = this.stopT = this.cflash = this.magnetT = this.x2T = this.powSlowT = 0;
     this.pendingSwitch = false; this.rng = Math.random; this.attT = 1; this.target = 'b'; this.wind = 0; Music.intensity = 0;
     for (const s of this.sticks) this.resetStick(s);
-    FX.clear(); Glove.clear(); Drone.reset(); Cat.reset(); Boss.on = false; Boss.blackT = 0;
+    FX.clear(); Glove.clear(); Drone.reset(); Cat.reset(); Pets.reset(); Boss.on = false; Boss.blackT = 0;
     Render.menuWorld = Math.min(NW - 1, Math.floor((unlockedLevel() - 1) / PER_WORLD));
   },
   attract(dt) {
@@ -2575,7 +2645,7 @@ const Game = {
       this.spawn();
     }
     this.stepSticks(dt);
-    Cat.update(dt);
+    Cat.update(dt); Pets.update(dt);
   },
   musicKey() { return this.L.boss ? 'boss' + this.w : 'w' + this.w; },
   mul() { return Math.min(CFG.combo.maxMul, 1 + Math.floor(this.combo / CFG.combo.step)); },
@@ -2603,7 +2673,7 @@ const Game = {
       else if ((this.spawnT -= dt) <= 0) { this.spawn(); if (this.L.dbl && this.rng() < CFG.chance.double) this.spawn(); this.spawnT = this.L.itv * (this.mode === 'endless' && this.lives === 1 && save.settings.assist ? 1.1 : 1); }
     }
     this.stepSticks(dt);
-    Boss.update(dt); Drone.update(dt); Cat.update(dt);
+    Boss.update(dt); Drone.update(dt); Cat.update(dt); Pets.update(dt);
     FX.update(dt);
     if (this.L.survive && !this.ending && this.gt >= this.L.survive) this.finish(true);
     if (this.mode === 'tutorial') Tut.update(rdt);
@@ -2687,7 +2757,7 @@ const Game = {
    * A tap only counts on the stick itself: its body plus a small margin (finger vs mouse),
    * plus at most one frame of fall above it to absorb input latency. Empty taps cost nothing.
    */
-  tap(px, py, type) {
+  tap(px, py, type, primary) {
     if (this.ending || this.mode === 'attract') return;
     const H = CFG.hit, u = V.u, len = V.len, half = V.stw / 2, mouse = type === 'mouse', mag = this.magnetT > 0 ? CFG.drone.magnetMul : 1;
     const mx = (mouse ? H.mouse : H.touch) * u * mag, my = H.vert * u * (mag > 1 ? 2 : 1);
@@ -2701,8 +2771,8 @@ const Game = {
       if (d < bd) { bd = d; best = s; }
     }
     if (best) { this.grab(best, py); return; }
-    if (Drone.hit(px, py) || Cat.hit(px, py)) return;
-    Glove.whiff(px, py);
+    if (Drone.hit(px, py) || Cat.hit(px, py) || Pets.hit(px, py)) return;
+    if (primary !== false) Glove.whiff(px, py);   // extra fingers resting on the glass draw no hands
   },
   grab(s, py) {
     const u = V.u, len = V.len, cx = s.x, top = s.y;
@@ -2772,6 +2842,7 @@ const Game = {
   land(s) {
     const x = s.x, u = V.u, y = s.up ? arcY(s.x) + 10 * u : V.fy;
     if (!s.up && this.mode !== 'attract' && !this.ending && Cat.land(s)) return;   // the cat batted it back up
+    if (!s.up) Pets.land(s.x);
     s.st = ST.GONE; s.t = .45;
     if (this.mode === 'attract' || this.ending) { FX.burst(x, y, s.k === KIND.N ? COLORS[s.c].hex : '#94a3b8', 5, 120 * u, 600 * u, .35); return; }
     if (s.k === KIND.N && (s.c === this.target || s.c2 === this.target)) {
@@ -2816,7 +2887,15 @@ const Game = {
 
 /** Turns a finished run into saved progress + an end-screen result. */
 const Progress = {
-  record(G) {
+  record(G) { return G.test ? this.dry(() => this.apply(G)) : this.apply(G); },
+  /** Developer test run: build the normal result, then put the save back exactly as it was. */
+  dry(fn) {
+    const snap = JSON.stringify(save); let r;
+    History.off = true;
+    try { r = fn(); } finally { save = migrate(JSON.parse(snap)); History.off = false; persist(true); UI.coins(); }
+    return Object.assign(r, { test: true, coins: 0, xp: 0, ups: [], evRewards: [], stickers: [], achs: [], missions: [], newBest: false, rank: 0, daily: false });
+  },
+  apply(G) {
     const s = save, st = s.stats, win = G.endWin, mode = G.mode, C = CFG.coins, D = CFG.diff[s.settings.diff] || CFG.diff.normal;
     const att = G.hits + G.wrong + G.missed;
     const r = { mode, n: G.n, startN: G.startN, seed: G.seed, vs: G.vs, w: G.w, win, score: G.score, caught: G.caught, hits: G.hits, goal: G.L.goal, lost: G.lost, boss: G.L.boss, stars: 0, coins: 0, survive: G.L.survive, gt: G.gt, missions: [],
@@ -2871,7 +2950,7 @@ const Progress = {
   },
   /** Quitting mid-run still counts the time and catches in the stats. */
   abandon(G) {
-    if (G.mode === 'tutorial' || G.mode === 'attract' || G.mode === 'none') return;
+    if (G.mode === 'tutorial' || G.mode === 'attract' || G.mode === 'none' || G.test) return;
     const st = save.stats;
     st.caught += G.hits; st.wrong += G.wrong; st.missed += G.missed; st.playTime += G.real; st.gold += G.goldN; st.bombsDodged += G.bombs;
     if (G.maxCombo > st.bestCombo) st.bestCombo = G.maxCombo;
@@ -2966,20 +3045,25 @@ const Tut = {
 };
 
 /** Auto quality: downgrade while playing if the frame rate stays low. */
+/** Auto quality: steps down only after two slow 3-second windows in a row. A steady ~30 fps is a battery-saver
+ *  screen cap (lower quality would not help), so it is left alone. */
 const Perf = {
-  frames: 0, t0: 0, fps: 60, warm: 0,
-  reset() { this.frames = 0; this.t0 = 0; this.warm = 0; },
+  frames: 0, t0: 0, fps: 60, warm: 0, bad: 0, capped: 0, last: 0,
+  reset() { this.frames = 0; this.t0 = 0; this.warm = 0; this.bad = 0; this.capped = 0; this.last = 0; },
   sample(now, dt) {
-    if ((this.warm += dt) < 1.2) return;
-    if (!this.t0) { this.t0 = now; this.frames = 0; return; }
-    this.frames++;
+    if ((this.warm += dt) < 3) return;          // the first seconds of a run build sprites
+    if (!this.t0) { this.t0 = this.last = now; this.frames = this.capped = 0; return; }
+    const d = now - this.last; this.last = now; this.frames++;
+    if (d > 30 && d < 37) this.capped++;
     const el = now - this.t0;
-    if (el < 2500) return;
-    this.fps = Math.round(this.frames * 1000 / el); this.t0 = now; this.frames = 0;
-    if (save.settings.quality === 'auto' && this.fps < 45 && !document.hidden) {
-      const order = ['high', 'medium', 'low'], i = order.indexOf(save.settings.autoQ);
-      if (i >= 0 && i < 2) { save.settings.autoQ = order[i + 1]; applyQuality(); persist(true); }
-    }
+    if (el < 3000) return;
+    this.fps = Math.round(this.frames * 1000 / el);
+    const cap = this.capped > this.frames * .8; this.t0 = now; this.frames = this.capped = 0;
+    if (save.settings.quality !== 'auto' || document.hidden || cap || this.fps >= 45) { this.bad = 0; return; }
+    if (++this.bad < 2) return;
+    this.bad = 0;
+    const order = ['high', 'medium', 'low'], i = order.indexOf(save.settings.autoQ);
+    if (i >= 0 && i < 2) { save.settings.autoQ = order[i + 1]; applyQuality(); persist(true); }
   },
 };
 function applyQuality() { Qcur = QUALITY[qualityKey()] || QUALITY.high; FX.init(Qcur.particles); layout(); }
@@ -3009,7 +3093,7 @@ const HUD = {
     else if (m === 'tutorial') s = t('hudTut');
     else if (L.survive) s = t('hudSurvive', G.n, Math.max(0, Math.ceil(L.survive - G.gt)));
     else s = L.boss ? t('hudBoss', c, L.goal) : t('hudLevel', G.n, c, L.goal);
-    this.e.hLevel.textContent = s;
+    this.e.hLevel.textContent = (G.test ? '🔧 ' : '') + s;
     this.e.pbar.classList.toggle('boss', !!L.boss);
   },
   score() { this.e.hScore.textContent = fmt(Game.score); Game.lcd = String(Game.mode === 'endless' || Game.mode === 'practice' ? Game.hits : Game.caught); },
@@ -3055,7 +3139,7 @@ const HUD = {
 /* ---------- pointer, FPS meter ---------- */
 /** Last pointer state over the canvas (the mouse glove follows it). */
 const Ptr = { x: 0, y: 0, mouse: false, down: false, over: false };
-const Fps = { v: 60, acc: 0, n: 0, last: 0, tick(now) { if (this.last) { this.acc += now - this.last; this.n++; if (this.acc >= 500) { this.v = Math.round(this.n * 1000 / this.acc); this.acc = this.n = 0; } } this.last = now; } };
+const Fps = { v: 60, acc: 0, n: 0, last: 0, worst: 0, w: 0, tick(now) { if (this.last) { const d = now - this.last; this.acc += d; this.n++; if (d > this.w) this.w = d; if (this.acc >= 500) { this.v = Math.round(this.n * 1000 / this.acc); this.worst = Math.round(this.w); this.acc = this.n = this.w = 0; } } this.last = now; } };
 
 /* ---------- grabbing glove ---------- */
 /** Cartoon glove sprite: open hand or fist, cuff in the target colour. Centre = palm. */
@@ -3081,11 +3165,10 @@ function gloveSprite(closed, cuff) {
 /** Glove feedback: grips the stick on a catch, closes on air on an empty tap, follows the mouse in play. */
 const Glove = {
   P: [],
-  init() { this.P = []; for (let i = 0; i < 6; i++) this.P.push({ on: false, x: 0, y: 0, top: 0, t: 0, ml: 1, grip: false, hex: '', kind: 0, sym: '' }); },
+  init() { this.P = []; for (let i = 0; i < 3; i++) this.P.push({ on: false, x: 0, y: 0, top: 0, t: 0, ml: 1, grip: false, hex: '', kind: 0, sym: '' }); },   // 2 grips + 1 empty hand
   clear() { for (const p of this.P) p.on = false; },
-  slot() { for (const p of this.P) if (!p.on) return p; return this.P[0]; },
-  grip(x, y, top, hex, kind, sym) { const p = this.slot(); p.on = true; p.x = x; p.y = y; p.top = top; p.t = p.ml = .2; p.grip = true; p.hex = hex; p.kind = kind; p.sym = sym; },
-  whiff(x, y) { const p = this.slot(); p.on = true; p.x = x; p.y = y; p.t = p.ml = .28; p.grip = false; Sound.play('whiff'); },
+  grip(x, y, top, hex, kind, sym) { const a = this.P[0], b = this.P[1], p = !a.on ? a : !b.on ? b : a.t < b.t ? a : b; this.P[2].on = false; p.on = true; p.x = x; p.y = y; p.top = top; p.t = p.ml = .2; p.grip = true; p.hex = hex; p.kind = kind; p.sym = sym; },
+  whiff(x, y) { if (this.P[0].on || this.P[1].on) return; const p = this.P[2]; p.on = true; p.x = x; p.y = y; p.t = p.ml = .28; p.grip = false; Sound.play('whiff'); },
   update(dt) { for (const p of this.P) if (p.on && (p.t -= dt) <= 0) p.on = false; },
   gripping() { for (const p of this.P) if (p.on && p.grip) return true; return false; },
   draw(g, tc) {
@@ -3187,11 +3270,11 @@ const Drone = {
 
 /* ---------- the street cat ---------- */
 /** Orange street cat, feet at (x,y), facing `dir`. st: walk | run | sit | swat | jump | purr. */
-function drawCat(g, x, y, s, dir, st, t, stT) {
+function drawCat(g, x, y, s, dir, st, t, stT, pal) {
   const jump = st === 'jump' ? Math.sin(clamp(1 - stT / .5, 0, 1) * Math.PI) * 22 : 0, sit = st === 'sit' || st === 'purr', walk = st === 'walk' || st === 'run';
   g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x, y + 1 * s, 17 * s * (1 - jump / 60), 3.5 * s, 0, 0, 7); g.fill();
   g.save(); g.translate(x, y - jump * s); g.scale(dir * s, s * (sit && !reduced() ? 1 + Math.sin(t * 2.4) * .025 : 1));   // breathing while sitting
-  const O = '#f59e0b', D = '#b45309', ph = t * (st === 'run' ? 22 : 10), tw = reduced() ? 0 : Math.sin(t * 3) * 4;
+  const O = pal ? pal[0] : '#f59e0b', D = pal ? pal[1] : '#b45309', ph = t * (st === 'run' ? 22 : 10), tw = reduced() ? 0 : Math.sin(t * 3) * 4;
   g.lineCap = 'round'; g.strokeStyle = O; g.lineWidth = 4; g.beginPath();
   if (sit) { g.moveTo(-8, -3); g.quadraticCurveTo(-19, 0, -15 + tw * .3, -7); }
   else { const up = st === 'jump' ? 8 : 0; g.moveTo(-13, -12); g.quadraticCurveTo(-24, -16 - up, -22 + tw, -28 - up); }
@@ -3228,6 +3311,129 @@ function drawCat(g, x, y, s, dir, st, t, stT) {
   g.restore();
 }
 /** "بسّة الحارة": strolls across the platform. It only ever helps or reacts — it never gets hurt. */
+/* ---------- strolling animals: pure decoration, they hop when a stick lands near them and are never hurt ---------- */
+function petJump(st, stT, h) { return st === 'jump' ? Math.sin(clamp(1 - stT / .5, 0, 1) * Math.PI) * h : 0; }
+function petShadow(g, x, y, s, w) { g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x, y + 1 * s, w * s, 3 * s, 0, 0, 7); g.fill(); }
+function drawPup(g, x, y, s, dir, st, t, stT, pal, happy) {
+  const jump = petJump(st, stT, 18), sit = st === 'sit', walk = st === 'walk', B = pal[0], D = pal[1], ph = t * 11;
+  const wag = reduced() ? 0 : Math.sin(t * (happy || jump ? 30 : 16)) * 5;
+  petShadow(g, x, y, s, 15);
+  g.save(); g.translate(x, y - jump * s); g.scale(dir * s, s); g.lineCap = 'round';
+  g.strokeStyle = D; g.lineWidth = 3.2; g.beginPath(); g.moveTo(-11, sit ? -8 : -13); g.quadraticCurveTo(-17, sit ? -14 : -19, -15 + wag * .4, sit ? -21 : -25); g.stroke();
+  if (!sit) { g.lineWidth = 3.4; g.beginPath(); [[-8, 0], [-4, 3.14], [6, 3.14], [10, 0]].forEach(([lx, p0]) => { const sw = walk ? Math.sin(ph + p0) * 3 : 0; g.moveTo(lx, -8); g.lineTo(lx + sw, 0); }); g.stroke(); }
+  g.fillStyle = B; g.beginPath(); if (sit) g.ellipse(-2, -9, 10, 9, 0, 0, 7); else g.ellipse(0, -11, 14, 7.5, 0, 0, 7); g.fill();
+  if (sit) { g.fillRect(3, -7, 3, 7); g.fillRect(7, -7, 3, 7); }
+  g.fillStyle = D; g.globalAlpha = .5; g.beginPath(); g.ellipse(sit ? -5 : -3, sit ? -12 : -13, 4.5, 3.2, .3, 0, 7); g.fill(); g.globalAlpha = 1;
+  const hx = sit ? 7 : 14, hy = sit ? -20 : -17;
+  g.fillStyle = B; g.beginPath(); g.arc(hx, hy, 7, 0, 7); g.fill(); g.beginPath(); g.ellipse(hx + 6, hy + 2, 4.2, 3.2, 0, 0, 7); g.fill();
+  g.fillStyle = '#1f2937'; g.beginPath(); g.arc(hx + 9.5, hy + 1, 1.6, 0, 7); g.fill();
+  g.fillStyle = D; g.beginPath(); g.ellipse(hx - 3, hy - 1, 3, 6.5, .35, 0, 7); g.fill();
+  g.fillStyle = '#111827'; g.beginPath(); g.arc(hx + 2.5, hy - 2.5, 1.3, 0, 7); g.fill();
+  if (happy || jump) { g.fillStyle = '#fb7185'; g.beginPath(); g.ellipse(hx + 7, hy + 5.5, 1.6, 2.4, 0, 0, 7); g.fill(); }
+  g.restore();
+}
+function drawDuck(g, x, y, s, dir, st, t, stT, baby) {
+  const jump = petJump(st, stT, 10), walk = st === 'walk', W = baby ? '#fde047' : '#ffffff', sway = walk && !reduced() ? Math.sin(t * 9) * .08 : 0;
+  petShadow(g, x, y, s, 10);
+  g.save(); g.translate(x, y - jump * s); g.scale(dir * s, s); g.rotate(sway);
+  const f = walk ? Math.sin(t * 9) * 2 : 0;
+  g.fillStyle = '#f97316'; g.fillRect(-3 + f, -2, 4, 2); g.fillRect(2 - f, -2, 4, 2);
+  g.fillStyle = W; g.beginPath(); g.ellipse(0, -8, 10, 7, 0, 0, 7); g.fill();
+  g.beginPath(); g.moveTo(-9, -10); g.lineTo(-14, -15); g.lineTo(-8, -6); g.closePath(); g.fill();
+  g.fillStyle = baby ? '#facc15' : '#e5e7eb'; g.beginPath(); g.ellipse(-2, -9, 6, 3.6, st === 'jump' ? -1 : -.2, 0, 7); g.fill();
+  g.fillStyle = W; g.beginPath(); g.arc(7, -17, 5.5, 0, 7); g.fill();
+  g.fillStyle = '#f97316'; g.beginPath(); g.ellipse(13, -16, 4, 1.8, 0, 0, 7); g.fill();
+  g.fillStyle = '#111827'; g.beginPath(); g.arc(8.5, -18.5, 1.1, 0, 7); g.fill();
+  g.restore();
+}
+function drawBunny(g, x, y, s, dir, st, t, stT, pal) {
+  const hop = st === 'walk' && !reduced() ? Math.max(0, Math.sin(t * 7)) * 7 : 0, jump = petJump(st, stT, 26), B = pal[0], D = pal[1];
+  petShadow(g, x, y, s, 11 - hop * .4);
+  g.save(); g.translate(x, y - (hop + jump) * s); g.scale(dir * s, s);
+  g.fillStyle = D; g.beginPath(); g.ellipse(-5, -3, 6, 3, 0, 0, 7); g.fill();
+  g.fillStyle = B; g.beginPath(); g.ellipse(-1, -9, 10, 8, 0, 0, 7); g.fill();
+  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(-11, -11, 3.2, 0, 7); g.fill();
+  g.fillStyle = B; g.beginPath(); g.arc(8, -15, 5.8, 0, 7); g.fill();
+  const ea = reduced() ? 0 : Math.sin(t * 3) * .08;
+  g.beginPath(); g.ellipse(5, -26, 2.2, 7, -.2 + ea, 0, 7); g.ellipse(9, -26, 2.2, 7, .15 - ea, 0, 7); g.fill();
+  g.fillStyle = '#fda4af'; g.beginPath(); g.ellipse(5, -26, 1, 5, -.2 + ea, 0, 7); g.ellipse(9, -26, 1, 5, .15 - ea, 0, 7); g.fill();
+  g.fillStyle = '#111827'; g.beginPath(); g.arc(10, -16, 1.1, 0, 7); g.fill();
+  g.fillStyle = '#fb7185'; g.beginPath(); g.arc(13.4, -14, 1, 0, 7); g.fill();
+  g.fillStyle = B; g.beginPath(); g.ellipse(6, -2, 3, 2, 0, 0, 7); g.fill();
+  g.restore();
+}
+const PET_PAL = {
+  cat: [['#9ca3af', '#4b5563'], ['#f3f4f6', '#9ca3af'], ['#374151', '#111827']],
+  pup: [['#e7c9a0', '#a16207'], ['#f5f5f4', '#78716c'], ['#92400e', '#451a03']],
+  duck: [[]], bunny: [['#f5f5f4', '#d6d3d1'], ['#a8a29e', '#57534e']],
+};
+const Pets = {
+  L: [], next: 0,
+  KINDS: ['cat', 'pup', 'duck', 'bunny'],
+  SPEED: { cat: 24, pup: 32, duck: 15, bunny: 30 },
+  reset() { this.L.length = 0; this.next = 1 + Math.random() * 3; },
+  enabled() { const m = Game.mode; return m === 'level' || m === 'endless' || m === 'daily' || m === 'practice' || m === 'attract'; },
+  y() { return V.fy + 20 * V.u; },                // they walk on the front of the platform
+  spawn() {
+    const u = V.u, k = this.KINDS[Math.random() * this.KINDS.length | 0], pals = PET_PAL[k], dir = Math.random() < .5 ? 1 : -1;
+    this.L.push({ k, pal: pals[Math.random() * pals.length | 0], dir, x: dir > 0 ? V.sx - 30 * u : V.colX0 + 30 * u, st: 'walk', t: Math.random() * 9, stT: 0,
+      turns: 1 + (Math.random() * 3 | 0), dz: Math.random() * 8 * u, snd: 0, h: [], sp: this.SPEED[k] * u * (.85 + Math.random() * .3) });
+  },
+  update(dt) {
+    if (!this.enabled()) { this.L.length = 0; return; }
+    const u = V.u, lo = V.sx + 18 * u, hi = V.colX0 - 18 * u, max = Qcur.cars && !Cat.on ? 2 : 1;
+    if (this.L.length < max && !Game.ending && (this.next -= dt) <= 0) { this.spawn(); this.next = 5 + Math.random() * 9; }
+    for (let i = this.L.length - 1; i >= 0; i--) {
+      const p = this.L[i]; p.t += dt; if (p.snd > 0) p.snd -= dt;
+      if (p.st === 'walk') {
+        const x0 = p.x;
+        p.x += p.dir * p.sp * (p.k === 'bunny' ? Math.max(0, Math.sin(p.t * 7)) * 1.6 : 1) * dt;   // rabbits move in hops
+        if (p.turns > 0 && (p.dir > 0 ? p.x > hi : p.x < lo)) { p.dir = -p.dir; p.turns--; }        // back and forth
+        else if (p.x > lo && p.x < hi && Math.random() < dt * .08) { p.st = 'sit'; p.stT = 1.5 + Math.random() * 2; }
+        if (p.k === 'duck' && p.x !== x0) { p.h.push(p.x); if (p.h.length > 48) p.h.shift(); }   // ducklings follow her path
+      } else if ((p.stT -= dt) <= 0) p.st = 'walk';
+      if (p.x < V.sx - 60 * u || p.x > V.colX0 + 60 * u) this.L.splice(i, 1);
+    }
+  },
+  /** A stick landed at x: animals close by hop out of the way. */
+  land(x) {
+    for (const p of this.L) {
+      if (Math.abs(p.x - x) > 30 * V.u || p.st === 'jump') continue;
+      p.st = 'jump'; p.stT = .5;
+      if (p.snd <= 0 && Math.random() < .4) { this.voice(p); p.snd = 3; }
+    }
+  },
+  voice(p) { Sound.play(p.k === 'cat' ? 'meow' : p.k === 'pup' ? 'yip' : p.k === 'duck' ? 'quack' : 'boing', 1); },
+  /** Tap an animal: a little heart (no gameplay effect). */
+  hit(px, py) {
+    if (Game.mode === 'attract') return false;
+    const u = V.u;
+    for (const p of this.L) {
+      const cy = this.y() + p.dz - 12 * u;
+      if (Math.abs(px - p.x) > 28 * u || Math.abs(py - cy) > 26 * u) continue;
+      p.st = 'love'; p.stT = 1.2; FX.text(p.x, cy - 24 * u, '❤', '#f472b6', 26 * u); this.voice(p); Haptics.buzz(12);
+      return true;
+    }
+    return false;
+  },
+  draw(g) {
+    const s = V.u * .95;
+    for (const p of this.L) {
+      const y = this.y() + p.dz, love = p.st === 'love', st = love ? 'sit' : p.st;
+      if (p.k === 'cat') drawCat(g, p.x, y, s, p.dir, love ? 'purr' : st, p.t, p.stT, p.pal);
+      else if (p.k === 'pup') drawPup(g, p.x, y, s, p.dir, st, p.t, p.stT, p.pal, love);
+      else if (p.k === 'bunny') drawBunny(g, p.x, y, s, p.dir, st, p.t, p.stT, p.pal);
+      else {
+        for (let j = 2; j >= 0; j--) {               // three ducklings on her trail
+          const i = p.h.length - 1 - (j + 1) * 12; if (i < 1) continue;
+          const bx = p.h[i], bd = p.h[i] >= p.h[i - 1] ? 1 : -1;
+          drawDuck(g, bx, y + 2 * V.u, s * .55, bd, st === 'jump' ? 'jump' : st, p.t + j, p.stT, true);
+        }
+        drawDuck(g, p.x, y, s, p.dir, st, p.t, p.stT, false);
+      }
+    }
+  },
+};
 const Cat = {
   on: false, x: 0, dir: 1, st: 'walk', t: 0, stT: 0, next: 0, saves: 0, sat: false, okAttract: false,
   wait() { const e = CFG.cat.every; return e[0] + Math.random() * (e[1] - e[0]); },
@@ -3502,12 +3708,14 @@ const Missions = {
 /* ---------- save history: automatic backups + a progress log ---------- */
 const BACKUP_KEY = 'fs_backups';
 const History = {
+  off: false,                                    // true while a developer test run is recorded
   ICO: { win: '⭐', boss: '👑', world: '🌆', ach: '🏆', best: '📈', buy: '🛍️', daily: '📅', restore: '↩️', import: '📥', reset: '🔄', plv: '🆙', stk: '🏷️', ev: '🏮' },
   /** Add a progress-log entry; its text is built when shown, so it follows the current language. */
-  log(k, a) { save.log.unshift({ t: Date.now(), k, a: a || [] }); if (save.log.length > CFG.history.log) save.log.length = CFG.history.log; },
+  log(k, a) { if (this.off) return; save.log.unshift({ t: Date.now(), k, a: a || [] }); if (save.log.length > CFG.history.log) save.log.length = CFG.history.log; },
   backups() { try { const b = JSON.parse(Store.get(BACKUP_KEY)); return Array.isArray(b) ? b : []; } catch (e) { return []; } },
   /** Snapshot the save (why: auto | manual | import | reset | restore). Its own storage key, so it survives a reset. */
   backup(why) {
+    if (this.off) return;
     const list = this.backups();
     list.unshift({ t: Date.now(), why, n: unlockedLevel(), st: totalStars(save), c: save.coins, d: JSON.stringify(save) });
     if (list.length > CFG.history.backups) list.length = CFG.history.backups;
@@ -3557,6 +3765,35 @@ const History = {
  * A challenge is a link that carries mode, level, seed, score and name. The friend plays the same
  * stick sequence (same seed) and can send a reply link back. Works wherever the game is hosted.
  */
+/** Owner tools: tap the version number 7× on the About screen and enter the owner code. Every level then opens on the map;
+ *  a level you have not reached plays as a test run that saves nothing. Only a code hash is stored here. */
+const Dev = {
+  PIN: 2900125805,                               // hashStr('fs-dev|' + code)
+  on: Store.get('fs_dev') === '1', taps: 0, tapT: 0,
+  tap() {
+    const now = Date.now(); if (now - this.tapT > 2500) this.taps = 0;
+    this.tapT = now; if (++this.taps < 7) return; this.taps = 0;
+    if (this.on) { this.set(false); return; }
+    Modal.open('<h3>🔧 ' + t('devT') + '</h3><p class="note">' + t('devPinD') + '</p><input class="namein" id="devPin" type="password" inputmode="numeric" maxlength="12" autocomplete="off" data-go="devGo">'
+      + '<button class="btn pri block" data-a="devGo">' + t('devUnlock') + '</button>');
+    Timers.set(() => { const i = $('#devPin'); if (i) i.focus(); }, 80);
+  },
+  check() {
+    const i = $('#devPin'); if (!i) return;
+    if (hashStr('fs-dev|' + i.value.trim()) === this.PIN) { Modal.close(); this.set(true); }
+    else { i.value = ''; Sound.play('deny'); UI.toast('🔒', t('devWrong')); }
+  },
+  set(on) {
+    this.on = on; if (on) Store.set('fs_dev', '1'); else Store.del('fs_dev');
+    UI.toast('🔧', t(on ? 'devOn' : 'devOff')); Sound.play(on ? 'unlock' : 'pause');
+  },
+  jump() {
+    Modal.open('<h3>🔧 ' + t('devJumpT') + '</h3><input class="namein" id="devLv" type="number" inputmode="numeric" min="1" max="' + MAX_LV + '" value="' + unlockedLevel() + '" data-go="devGoLv">'
+      + '<button class="btn pri block" data-a="devGoLv">▶ ' + t('play') + '</button>');
+    Timers.set(() => { const i = $('#devLv'); if (i) i.select(); }, 80);
+  },
+  goLv() { const i = $('#devLv'); const n = clamp(parseInt(i && i.value, 10) || 1, 1, MAX_LV); Modal.close(); startLevel(n); },
+};
 const Challenge = {
   pending: null, next: null,
   can(r) { return r.mode === 'level' || r.mode === 'daily' || r.mode === 'endless'; },
@@ -3818,6 +4055,7 @@ function flyCoins(fromEl, pill, amount, before) {
 const Preview = {
   setup(c, w, h) { const d = Math.min(2, window.devicePixelRatio || 1); c.width = Math.round(w * d); c.height = Math.round(h * d); const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); g.direction = 'ltr'; return g; },
   item(c, cat, id) {
+    if (id === 'world') id = 'w' + Math.min(NW - 1, Math.floor((unlockedLevel() - 1) / PER_WORLD));   // shows the design of the world you are in
     const w = c.clientWidth || 150, h = c.clientHeight || 112, g = this.setup(c, w, h), u = h / 112;
     if (cat === 'bg') { drawCity(g, { W: w, H: h, hz: h * .8, sx: 0, sw: w, u: w / 360, k: .45, w: 1, skin: id, moonY: h * .26, ads: null, roofs: null }); return; }
     if (cat === 'bebo') { g.fillStyle = '#070b1c'; g.fillRect(0, 0, w, h); drawMascot(g, w / 2, h - 6, h / 104, 'happy', .4, '#22d3ee', false, id); return; }
@@ -3879,6 +4117,7 @@ const SM = {
     if (P && P.exit) P.exit(name);
     Timers.clear(); Modal.close();
     this.state = name; this.p = p || {};
+    if (Cache.stale && !['play', 'countdown', 'cinema', 'pause'].includes(name)) Cache.clear();
     document.documentElement.dataset.state = name;
     HUD.show(!!S.hud);
     $('#tut').classList.toggle('on', name === 'play' && Game.mode === 'tutorial');
@@ -3938,7 +4177,7 @@ Screens.map = {
   enter() {
     const u = unlockedLevel(), tod = themeTod(), H = this.yb(MAX_LV - 1) + this.TOP, top = i => H - this.yb(i);
     const gateY = w => w === 0 ? H - 70 : top(w * PER_WORLD) + (this.GAP + this.GATE) / 2;   // gate sits below a world's first level
-    let h = UI.top(t('mapTitle'), '<span class="pill"><span class="star">★</span><b class="num">' + totalStars(save) + '</b></span>') + '<div class="saga" style="height:' + H + 'px">';
+    let h = UI.top(t('mapTitle'), '<span class="pill"><span class="star">★</span><b class="num">' + totalStars(save) + '</b></span>' + (Dev.on ? '<button class="btn ico" data-a="devJump" aria-label="' + t('devJumpT') + '">🔧</button>' : '')) + '<div class="saga" style="height:' + H + 'px">';
     // world zones (sky, skyline, neon signs)
     for (let w = 0; w < NW; w++) {
       const y1 = w === NW - 1 ? 0 : gateY(w + 1), y2 = w === 0 ? H : gateY(w) + 70, sky = skyFor(w, 'classic', tod), locked = w * PER_WORLD + 1 > u;
@@ -3965,9 +4204,9 @@ Screens.map = {
     for (let i = 0; i < MAX_LV; i++) {
       const n = i + 1, st = save.stars[i] || 0, lock = n > u, L = cfg(n), w = L.w;
       const sp = L.type === 'survive' ? '⏳' : L.type === 'goldRain' ? '💰' : L.type === 'dark' ? '🌑' : '';
-      h += '<button class="sn' + (L.boss ? ' boss' : '') + (lock ? ' lock' : '') + (st ? ' done' : '') + (n === u ? ' cur' : '') + '" style="left:' + this.xp(i).toFixed(2) + '%;top:' + top(i) + 'px;--wa:' + WORLDS[w].acc + '" '
-        + (lock ? 'disabled' : 'data-a="lv" data-v="' + n + '"') + ' aria-label="' + t('levelN', n) + '">'
-        + (lock ? '🔒' : L.boss ? '👑' : n)
+      h += '<button class="sn' + (L.boss ? ' boss' : '') + (lock ? ' lock' + (Dev.on ? ' devo' : '') : '') + (st ? ' done' : '') + (n === u ? ' cur' : '') + '" style="left:' + this.xp(i).toFixed(2) + '%;top:' + top(i) + 'px;--wa:' + WORLDS[w].acc + '" '
+        + (lock && !Dev.on ? 'disabled' : 'data-a="lv" data-v="' + n + '"') + ' aria-label="' + t('levelN', n) + '">'
+        + (lock ? (Dev.on ? n : '🔒') : L.boss ? '👑' : n)
         + (lock ? '' : '<span class="st">' + '★'.repeat(st) + '<i>' + '★'.repeat(3 - st) + '</i></span>')
         + (sp ? '<span class="sp">' + sp + '</span>' : '') + '</button>';
     }
@@ -4144,7 +4383,7 @@ Screens.about = {
       + '<canvas class="mc" data-m="happy" style="width:110px;height:102px"></canvas>'
       + '<div class="card"><p>' + t('aboutP1') + '</p><p class="muted" style="margin-top:8px">' + t('aboutP2', MAX_LV, NW) + '</p><p class="note" style="margin-top:8px">' + t('aboutP3') + '</p></div>'
       + '<div class="card" style="text-align:start"><h3 style="margin-bottom:6px">' + t('sChangelog') + '</h3>' + changelogHTML() + '</div>'
-      + '<p class="ver">' + t('version', VERSION) + '</p></div>', 'dark');
+      + '<p class="ver" data-a="verTap">' + t('version', VERSION) + (Dev.on ? ' · 🔧' : '') + '</p></div>', 'dark');
   },
 };
 Screens.missions = {
@@ -4201,7 +4440,7 @@ Screens.intro = {
       + '<canvas class="introcv" id="introCv"></canvas><h1 style="font-size:2.1rem">' + t('in_' + k) + '</h1>' + extra + '<p>' + t('in_' + k + 'D') + '</p>'
       + info + '<button class="btn pri lg block" data-a="introGo">' + t('gotIt') + '</button></div>', 'scrim center');
     Preview.intro($('#introCv'), k);
-    if (!boss) { save.seen[k] = 1; persist(true); }
+    if (!boss && !Game.test) { save.seen[k] = 1; persist(true); }
     Sound.play('unlock');
   },
 };
@@ -4214,7 +4453,7 @@ Screens.countdown = {
     $('#cdtip').innerHTML = p.resume ? '' : '<div class="tip" style="margin:0 auto">' + (Game.assist ? '🤝 ' + t('assistOn') : pick(t('tips'))) + '</div>';
     const wc = $('#wcard'); wc.className = ''; wc.innerHTML = '';
     if (!p.resume && Game.mode === 'level' && !save.seenWorld[Game.w]) {   // neon title card the first time you enter a world
-      save.seenWorld[Game.w] = 1; persist(true);
+      if (!Game.test) { save.seenWorld[Game.w] = 1; persist(true); }
       wc.style.setProperty('--wc', WORLDS[Game.w].acc);
       wc.innerHTML = '<small>' + t('worldN', Game.w + 1) + '</small><b>' + WORLD_ICO[Game.w] + ' ' + worldName(Game.w) + '</b>';
       void wc.offsetWidth; wc.className = 'on';
@@ -4277,6 +4516,7 @@ Screens.end = {
       + (r.daily ? '<span class="chip">📅 ' + t('dailyBonus') + ' ' + plus(CFG.coins.daily) + '</span>' : '')
       + (r.xp ? (() => { const a = Player.info(r.xpFrom), up = r.ups.length > 0; return '<div class="xprow"><span class="num">🆙 ' + t('lvShort', a.l) + '</span><div class="bar"><i id="eXp" style="width:' + (a.into / a.need * 100) + '%"></i></div><span class="num">' + plus(r.xp) + ' XP</span></div>'
           + (up ? '<span class="chip new">🆙 ' + t('lvUp', Player.info(save.xp).l) + '</span>' : ''); })() : '')
+      + (r.test ? '<span class="chip">🔧 ' + t('devTest') + '</span>' : '')
       + (r.lanterns && Season.on('ramadan') ? '<span class="chip">🏮 ' + plus(r.lanterns) + ' · ' + t('evProg', save.event.n, CFG.ramadan[CFG.ramadan.length - 1].n) + '</span>' : '')
       + (r.vs ? '<div class="vs' + (r.score > r.vs.sc ? ' win' : '') + '">' + (r.score > r.vs.sc ? t('chWin', esc(r.vs.nm)) : r.score === r.vs.sc ? t('chTie', esc(r.vs.nm)) : t('chLose', esc(r.vs.nm))) + ' · <span class="num">' + fmt(r.score) + ' / ' + fmt(r.vs.sc) + '</span></div>' : '')
       + (r.mode === 'daily' ? (() => { const rv = Rivals.ofDay(); return '<span class="chip">' + (r.score > rv.s ? t('rivalBeat', esc(rv.nm)) : t('rivalLost', esc(rv.nm), fmt(rv.s))) + '</span>'; })() : '')
@@ -4402,6 +4642,10 @@ const Actions = {
   },
   equip(v) { save.shop.eq[Screens.shop.tab] = v; Cache.clear(); persist(); Sound.play('coin'); Screens.shop.render(); },
   ach() { SM.go('ach'); },
+  verTap() { Dev.tap(); },
+  devGo() { Dev.check(); },
+  devJump() { Dev.jump(); },
+  devGoLv() { Dev.goLv(); },
   profile() { SM.go('profile'); },
   album() { SM.go('album'); },
   event() { Season.modal(); },
@@ -4520,7 +4764,7 @@ document.addEventListener('click', e => {
   if (el.disabled || el.classList.contains('locked')) return;
   const now = performance.now();
   if (now < UI.busy && !el.closest('#modal')) return;          // ignore taps during screen transitions
-  if (el === lastAct && now - lastActT < 350) return;           // double-tap guard
+  if (el === lastAct && now - lastActT < 350 && el.dataset.a !== 'verTap') return;   // double-tap guard (not for the secret taps)
   lastAct = el; lastActT = now;
   Sound.unlock();
   const a = el.dataset.a, fn = Actions[a]; if (!fn) return;
@@ -4540,7 +4784,7 @@ cv.addEventListener('pointerdown', e => {
   Haptics.armed = true;
   Ptr.mouse = e.pointerType === 'mouse'; Ptr.x = e.clientX; Ptr.y = e.clientY; Ptr.over = true; Ptr.down = true;
   if (SM.state !== 'play') return;
-  e.preventDefault(); Sound.unlock(); Game.tap(e.clientX, e.clientY, e.pointerType);
+  e.preventDefault(); Sound.unlock(); Game.tap(e.clientX, e.clientY, e.pointerType, e.isPrimary);
 }, { passive: false });
 cv.addEventListener('pointermove', e => { Ptr.mouse = e.pointerType === 'mouse'; Ptr.x = e.clientX; Ptr.y = e.clientY; Ptr.over = true; });
 cv.addEventListener('pointerleave', () => { Ptr.over = false; Ptr.down = false; });
@@ -4549,7 +4793,7 @@ addEventListener('pointercancel', () => { Ptr.down = false; });
 cv.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('keydown', e => {
   const st = SM.state, tag = e.target && e.target.tagName;
-  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  if (tag === 'TEXTAREA' || tag === 'INPUT') { const go = e.key === 'Enter' && e.target.dataset.go; if (go && Actions[go]) Actions[go](); return; }
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
     if (Modal.isOpen()) Modal.close();
     else if (st === 'play' || st === 'countdown') SM.go('pause');
@@ -4567,10 +4811,9 @@ document.addEventListener('visibilitychange', () => {
   else Sound.resume();
 });
 let rzId = 0;
-addEventListener('resize', () => { cancelAnimationFrame(rzId); rzId = requestAnimationFrame(() => { layout(); if (Mascot.sayT > 0) Mascot.hideBubble(); }); });
-if (document.fonts) {
-  document.fonts.ready.then(() => Cache.clear());
-  document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => Cache.clear());
+addEventListener('resize', () => { cancelAnimationFrame(rzId); rzId = requestAnimationFrame(() => { layout(true); if (Mascot.sayT > 0) Mascot.hideBubble(); }); });
+if (document.fonts) {                          // the canvas only uses these two faces: load them up front, redraw once
+  Promise.all(['400 16px Lalezar', '800 16px Cairo'].map(f => document.fonts.load(f))).catch(() => {}).then(() => Cache.refresh());
 }
 
 /* ---------- main loop (single rAF for everything) ---------- */

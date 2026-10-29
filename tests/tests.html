@@ -190,6 +190,41 @@
     fresh(); SM.go('menu');
     return bad.length ? bad.join(', ') : true;
   });
+  await T('world kits: every world has its own arch and platform, and they draw', () => {
+    const c = document.createElement('canvas'); c.width = 400; c.height = 300; const g = c.getContext('2d');
+    for (let w = 0; w < NW; w++) {
+      ok(ARCH['w' + w] && PLAT['w' + w], 'kit for world ' + w);
+      drawArch(g, 'w' + w, 0, 400, x => 60 + (x - 200) * (x - 200) / 2000, 1); drawPlatform(g, 200, 220, 150, 30, 1, 'w' + w);
+    }
+    fresh(); eq(save.shop.eq.arch, 'world'); eq(save.shop.eq.platform, 'world');
+    Game.setup('level', 40); eq(kitId('arch'), 'w2'); save.shop.eq.arch = 'gold'; eq(kitId('arch'), 'gold', 'shop item wins');
+    const old = migrate({ v: SAVE_VERSION, shop: { owned: { arch: ['classic', 'gold'] }, eq: { arch: 'classic', platform: 'classic' } } });
+    eq(old.shop.eq.arch, 'world', 'old default moves to the world design'); ok(old.shop.owned.arch.includes('world') && old.shop.owned.arch.includes('gold'));
+    eq(migrate({ v: SAVE_VERSION, kitV: 1, shop: { eq: { arch: 'classic' } } }).shop.eq.arch, 'classic', 'a deliberate classic stays');
+  });
+  await T('animals: stroll, turn back, hop when a stick lands, never leave the stage area', () => {
+    fresh(); Game.setup('level', 12); Pets.reset(); Pets.next = 0; const kinds = new Set(); let hops = 0;
+    for (let i = 0; i < 60 * 90; i++) {
+      Pets.update(1 / 60);
+      for (const p of Pets.L) { kinds.add(p.k); ok(p.x > V.sx - 61 * V.u && p.x < V.colX0 + 61 * V.u, 'x ' + p.x); }
+      if (i % 120 === 0 && Pets.L.length) { Pets.land(Pets.L[0].x); if (Pets.L[0].st === 'jump') hops++; }
+      if (i % 600 === 0) { Pets.next = 0; Pets.L.length = 0; }
+    }
+    ok(kinds.size >= 3, 'kinds seen: ' + [...kinds].join()); ok(hops > 5, 'hops ' + hops);
+    const c = document.createElement('canvas'); c.width = c.height = 200; const g = c.getContext('2d');
+    for (const k of Pets.KINDS) { Pets.L = [{ k, pal: PET_PAL[k][0], dir: 1, x: 100, st: 'walk', t: 1, stT: 0, turns: 0, dz: 0, snd: 0, h: [80, 85, 90, 95], sp: 1 }]; Pets.draw(g); }
+    Pets.reset(); Game.mode = 'tutorial'; Pets.next = 0; Pets.update(1); eq(Pets.L.length, 0, 'none in the tutorial');
+  });
+  await T('developer mode: wrong code refused, test runs of locked levels save nothing', () => {
+    fresh({ stars: [3, 3, 3, 3, 3] }); Dev.on = false; Dev.taps = 0; Dev.tapT = 0;
+    for (let i = 0; i < 7; i++) Dev.tap();
+    ok(document.querySelector('#devPin'), 'code prompt'); document.querySelector('#devPin').value = '000000'; Dev.check(); ok(!Dev.on, 'wrong code accepted'); Modal.close();
+    Dev.on = true; SM.go('map'); ok(UI.cur.querySelector('.sn.devo[data-a="lv"]'), 'locked levels open on the map');
+    const before = JSON.stringify(save), coins = save.coins;
+    eq(play('level', 120), 'end'); ok(Screens.end.r.test, 'marked as test'); eq(save.coins, coins); eq(JSON.stringify(save), before, 'save changed');
+    eq(play('level', 3), 'end'); ok(!Screens.end.r.test, 'a reached level is a normal run');
+    Dev.on = false; Store.del('fs_dev'); SM.go('map'); ok(!UI.cur.querySelector('.sn.devo'), 'locked again');
+  });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);
