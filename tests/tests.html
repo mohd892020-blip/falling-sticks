@@ -230,6 +230,22 @@
     fresh(); Game.setup('level', 33); eq(stageName(), LEVEL_NAMES[32]); Game.setup('endless', 1); eq(stageName(), 'Endless');
     for (const n of LEVEL_NAMES) { const c = nameSign(n, '#22d3ee'); ok(c.width > 0 && c.height > 0, n); }
   });
+  await T('companions: unlock with progress, walk with you, and use their skills', () => {
+    fresh(); ok(Pets.unlocked('cat') && !Pets.unlocked('pup'), 'only the cat at first'); Actions.petPick('pup'); eq(save.pet.id, 'cat');
+    fresh({ stars: Array(50).fill(3) }); Actions.petPick('duck'); eq(save.pet.id, 'duck');
+    Game.setup('level', 51); const p = Pets.comp(); ok(p && p.k === 'duck', 'duck walks with you');
+    for (let i = 0; i < 60 * 40; i++) { Pets.update(1 / 60); ok(Pets.comp() === p && p.x > V.sx - 61 * V.u && p.x < V.colX0 + 61 * V.u, 'stays'); }
+    Cat.saves = 0; let s = falling(Game.target); const m0 = Game.missed; Game.land(s); eq(Game.missed, m0, 'duck saved it'); ok(s.bounced);
+    s = falling(Game.target); Game.land(s); eq(Game.missed, m0 + 1, 'only once per level');
+    save.pet.id = 'pup'; Game.setup('level', 51); const b0 = Game.bonusCoins;
+    for (let i = 0; i < 3; i++) { Cat.saves = 0; Game.land(falling('b', '', KIND.GOLD)); }
+    eq(Game.bonusCoins - b0, CFG.pets.fetch * CFG.pets.fetchCoins, 'fetch twice');
+    save.pet.id = 'bunny'; Game.setup('level', 51); eq(Pets.quickMul(), CFG.pets.quickMul);
+    save.pet.id = 'cat'; Game.setup('level', 51); Game.powSlowT = 0; Game.loseLife('miss'); ok(Game.powSlowT >= CFG.pets.calm - .01, 'cat calms');
+    SM.go('pets'); ok(UI.cur.querySelectorAll('canvas[data-pet]').length === 4, 'companion screen');
+    save.shop.owned.pet.push('crown'); save.shop.eq.pet = 'crown'; const c = document.createElement('canvas'); c.width = c.height = 120;
+    for (const k of Pets.KINDS) drawPetIcon(c.getContext('2d'), k, 60, 100, 2, 'crown', 0);
+  });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);
