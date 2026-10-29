@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Falling Sticks · tests</title>
+<style>
+  body{margin:0;font:14px/1.45 system-ui,sans-serif;background:#0b1020;color:#e5edff;display:flex;gap:16px;padding:16px}
+  iframe{border:0;width:390px;height:844px;flex:none;border-radius:12px;background:#000}
+  #log{flex:1;min-width:0}
+  .ok{color:#4ade80}.bad{color:#f87171}
+  pre{white-space:pre-wrap;word-break:break-word;font-size:12px;color:#94a3b8}
+</style>
+</head>
+<body>
+<!-- Automated checks for index.html. Open via a local server (python tests/run_tests.py runs them headless). -->
+<iframe id="game"></iframe>
+<div id="log"><h2 id="sum">Running…</h2><div id="list"></div><pre id="out"></pre></div>
+
+<script type="text/plain" id="suite">
+(async () => {
+  const R = [];
+  /** A test passes when fn returns nothing/true; a returned string or a thrown error is the failure message. */
+  const T = async (name, fn) => {
+    const t0 = performance.now();
+    try { const m = await fn(); R.push({ name, ok: m === undefined || m === true, msg: typeof m === 'string' ? m : '', ms: Math.round(performance.now() - t0) }); }
+    catch (e) { R.push({ name, ok: false, msg: String((e && e.stack) || e).split('\n').slice(0, 3).join(' | '), ms: Math.round(performance.now() - t0) }); }
+  };
+  const ok = (c, what) => { if (!c) throw new Error(what || 'assertion failed'); };
+  const eq = (a, b, what) => { if (a !== b) throw new Error((what || 'value') + ': expected ' + JSON.stringify(b) + ', got ' + JSON.stringify(a)); };
+  const errs = [];
+  window.addEventListener('error', e => errs.push(String(e.message)));
+  const cerr = console.error; console.error = (...a) => { errs.push(a.map(String).join(' ')); cerr.apply(console, a); };
+
+  // drive the game loop by hand: fixed 60 fps steps, rendering every 5th frame to keep it fast
+  const raf0 = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = cb => cb === frame ? 0 : raf0(cb);
+  let now = performance.now(), rn = 0;
+  const rf = Render.frame.bind(Render); Render.frame = dt => { if (++rn % 5 === 0) rf(dt); };
+  const step = (sec, bot) => { const n = Math.round(sec * 60); for (let i = 0; i < n; i++) { now += 1000 / 60; if (bot && SM.state === 'play') bot(); frame(now); } };
+  /** A good player: catches matching sticks (and the matching half of two-tone ones), never touches bombs. */
+  const bot = () => {
+    const G = Game, len = V.len;
+    for (const s of G.sticks) {
+      if (s.st !== ST.FALL || s.fake) continue;
+      const prog = s.up ? (s.y0 - s.y) / Math.max(1, s.y0 - arcY(s.x)) : (s.y - s.y0) / Math.max(1, V.fy - len - s.y0);
+      if (prog < .45 || s.k === KIND.BOMB) continue;
+      if (s.k === KIND.GOLD || s.k === KIND.LAMP) G.grab(s);
+      else if (s.c === G.target) G.grab(s, s.y + len * .25);
+      else if (s.c2 === G.target) G.grab(s, s.y + len * .75);
+    }
+  };
+  const fresh = o => { save = migrate(Object.assign({ v: SAVE_VERSION, introSeen: true, tutorialDone: true, xpInit: true }, o || {})); save.settings.music = save.settings.sfx = 0; save.settings.lang = 'en'; LANG = 'en'; Season.id = ''; Timers.clear(); Modal.close(); };
+  const play = (mode, n, maxSec, b) => {
+    startRun(mode, n); if (SM.state === 'intro') SM.go('countdown');
+    step(3); let t = 0; while (SM.state === 'play' && t < (maxSec || 240)) { step(1, b === undefined ? bot : b); t++; }
+    return SM.state;
+  };
+  const hang = () => Game.sticks.find(s => s.st === ST.HANG && !s.floor);
+  /** Put a hanging stick mid-fall for direct grab/land checks. */
+  const falling = (c, c2, k) => { const s = hang(); s.st = ST.FALL; s.y0 = arcY(s.x) + 10 * V.u; s.y = s.y0 + 40 * V.u; s.vy = 50; s.c = c; s.c2 = c2 || ''; s.k = k || KIND.N; return s; };
+  const other = () => COLOR_KEYS.find(c => c !== Game.target);
+  const third = () => COLOR_KEYS.find(c => c !== Game.target && c !== other());
+  layout(); Cache.clear();
+
+  await T('boot: game objects ready, no errors', () => { ok(typeof Game === 'object' && Game.sticks.length === CFG.lanes + CFG.floorSticks, 'sticks'); ok(['splash', 'cinema', 'menu'].includes(SM.state), 'state ' + SM.state); eq(errs.length, 0, 'errors'); });
+  await T('version: sw.js cache name matches VERSION', async () => { const sw = await (await fetch('../sw.js', { cache: 'no-store' })).text(); ok(sw.includes("'falling-sticks-v" + VERSION + "'"), 'sw.js CACHE is not v' + VERSION); });
+  await T('i18n: every language has every key, placeholder and achievement', () => {
+    const en = STR.en, bad = [];
+    for (const l of Object.keys(LANGS)) {
+      const d = STR[l]; if (!d) { bad.push(l + ':missing'); continue; }
+      for (const k of Object.keys(en)) {
+        if (k === 'achs') continue;
+        if (!(k in d)) { bad.push(l + ':' + k); continue; }
+        if (Array.isArray(en[k])) { if (!Array.isArray(d[k]) || !d[k].length || ((k === 'worlds' || k === 'titles') && d[k].length !== en[k].length)) bad.push(l + ':' + k + '[]'); }
+        else if (typeof en[k] === 'string') for (const ph of ['{0}', '{1}', '{2}']) if (en[k].includes(ph) !== String(d[k]).includes(ph)) bad.push(l + ':' + k + ph);
+      }
+      for (const a of ACH) if (!d.achs || !d.achs[a.id]) bad.push(l + ':achs.' + a.id);
+      for (const c of Object.keys(SHOP)) for (const it of SHOP[c]) if (!d['it_' + c + '_' + it.id]) bad.push(l + ':it_' + c + '_' + it.id);
+      for (const i of INTROS) if (!d['in_' + i.key] || !d['in_' + i.key + 'D']) bad.push(l + ':in_' + i.key);
+      if (d.titles && d.titles.length !== CFG.titles.length) bad.push(l + ':titles vs CFG.titles');
+    }
+    eq(STR.en.worlds.length, NW, 'world names');
+    return bad.length ? bad.length + ' problems: ' + bad.slice(0, 15).join(', ') : true;
+  });
+  await T('levels: cfg(n) is sane for every level', () => {
+    for (let n = 1; n <= MAX_LV; n++) {
+      const L = cfg(n);
+      for (const k of ['itv', 'g', 'warn', 'decoy', 'goal']) ok(Number.isFinite(L[k]) && L[k] >= 0, 'L' + n + '.' + k + '=' + L[k]);
+      ok(L.itv > 0 && L.g > 0, 'L' + n + ' speed');
+      eq(L.boss, n % PER_WORLD === 0, 'boss at ' + n);
+      eq(L.twoTone, n >= CFG.unlock.twoTone, 'twoTone at ' + n); eq(L.rise, n >= CFG.unlock.rise, 'rise at ' + n);
+      if (L.wind) ok(n >= CFG.unlock.wind, 'wind at ' + n);
+    }
+    ok(cfg(CFG.unlock.wind).wind, 'wind must blow on its intro level');
+  });
+  await T('save: v1 prototype save migrates', () => { const s = migrate({ s: [3, 2, 1] }); eq(s.v, SAVE_VERSION); eq(s.stars.join(), '3,2,1'); ok(s.tutorialDone && s.introSeen, 'flags'); eq(s.xp, 0); });
+  await T('save: merge keeps free-form maps and rejects wrong types', () => {
+    const s = migrate({ v: SAVE_VERSION, coins: 'lots', xp: 75, stickers: { '0_enter': 5 }, fails: { 12: 2 }, seenWorld: { 3: 1 }, event: { id: 'ramadan-1', n: 4, got: [0] }, settings: { theme: 'nope-but-string', diff: 'insane' } });
+    eq(s.coins, 0, 'coins'); eq(s.xp, 75, 'xp'); eq(s.stickers['0_enter'], 5); eq(s.fails[12], 2); eq(s.seenWorld[3], 1); eq(s.event.n, 4); eq(s.settings.diff, 'normal');
+  });
+  await T('player: XP curve, titles and level-up rewards', () => {
+    fresh(); eq(Player.info(0).l, 1); eq(Player.info(Player.need(1) - 1).l, 1); eq(Player.info(Player.need(1)).l, 2);
+    let last = 0; for (let x = 0; x < 200000; x += 997) { const l = Player.info(x).l; ok(l >= last, 'monotonic'); last = l; }
+    ok(last <= CFG.xp.max, 'max level'); eq(Player.title(1), t('titles')[0]); eq(Player.title(99), t('titles')[CFG.titles.length - 1]);
+    const ups = Player.gain(Player.need(1)); eq(ups.length, 1); eq(ups[0].l, 2); eq(save.coins, TRACK[0].coins);
+    let need = 0; for (let l = 1; l < 5; l++) need += Player.need(l);
+    fresh(); Player.gain(need); ok(save.shop.owned.bebo.includes('cap'), 'level 5 gives the cap');
+    fresh({ shop: { owned: { bebo: ['none', 'cap'] } } }); const c0 = save.coins; Player.gain(need); ok(save.coins - c0 >= 150 + 50 + 60 + 70, 'owned item turns into coins');
+  });
+  await T('player: old progress turns into XP once', () => { fresh({ stars: Array(30).fill(3), bossBeat: [true, true], xpInit: false }); const l = Player.retro(); ok(l > 1, 'level ' + l); ok(save.xpInit); eq(Player.retro(), 0, 'second call'); });
+  await T('album: stickers and set reward', () => {
+    fresh({ stars: Array(PER_WORLD).fill(3), bossBeat: [true] });
+    const got = Album.check(); eq(got.length, STK.length + 1, 'stickers + set'); ok(save.stickers.set0, 'set'); eq(save.coins, CFG.stickerSet); eq(Album.check().length, 0, 'no repeats'); eq(Album.count(), STK.length);
+    fresh({ stars: [3, 3, 2] }); eq(Album.check().map(x => x[1]).join(), 'enter');
+  });
+  await T('season: Ramadan lanterns grant each reward once', () => {
+    fresh(); Season.id = 'ramadan'; save.event = { id: 'ramadan-test', n: 0, got: [] };
+    eq(Season.add(25).length, 1); eq(save.coins, CFG.ramadan[0].coins); eq(Season.add(30).length, 1); ok(save.shop.owned.bebo.includes('lantern'), 'lantern');
+    eq(Season.add(100).length, 1); eq(Season.add(100).length, 0); Season.id = ''; eq(Season.add(10).length, 0);
+  });
+  await T('season: Eid doubles the daily gift; event items cannot be bought', () => {
+    fresh(); Season.id = 'eid'; eq(Daily.reward(1), CFG.dailyRewards[0] * 2); Season.id = ''; eq(Daily.reward(1), CFG.dailyRewards[0]);
+    save.coins = 99999; Screens.shop.tab = 'bebo'; Actions.buy('lantern'); ok(!save.shop.owned.bebo.includes('lantern'), 'bought an event item');
+  });
+  await T('smart assist: kicks in after 3 fails, respects the setting', () => {
+    fresh({ fails: { 20: 3 } }); Game.setup('level', 20); ok(Game.assist, 'assist on'); ok(Math.abs(Game.L.g - cfg(20).g * CFG.assist.grav) < 1e-9, 'gravity');
+    save.settings.assist = false; Game.setup('level', 20); ok(!Game.assist, 'setting off');
+    fresh({ fails: { 20: 2 } }); Game.setup('level', 20); ok(!Game.assist, 'too early');
+  });
+  await T('smart assist: losses are counted, a win clears them', () => {
+    fresh({ stars: [3, 3, 3, 3] }); eq(play('level', 5, 120, null), 'end'); ok(!Screens.end.r.win, 'should lose without a bot'); eq(save.fails[5], 1);
+    eq(play('level', 5), 'end'); ok(Screens.end.r.win, 'bot should win'); ok(!(5 in save.fails), 'cleared');
+  });
+  await T('two-tone: the tapped half decides', () => {
+    fresh(); Game.setup('level', 80); const T0 = Game.target;
+    let s = falling(T0, other()); const c0 = Game.caught; Game.grab(s, s.y + 4 * V.u); eq(Game.caught, c0 + 1, 'top half = target');
+    s = falling(T0, other()); const w0 = Game.wrong; Game.grab(s, s.y + V.len - 4 * V.u); eq(Game.wrong, w0 + 1, 'bottom half is wrong');
+    Cat.saves = 0; s = falling(other(), Game.target); const m0 = Game.missed; Game.land(s); eq(Game.missed, m0 + 1, 'target half landed');
+    s = falling(other(), third()); const m1 = Game.missed; Game.land(s); eq(Game.missed, m1, 'no target half: free to drop');
+  });
+  await T('rising sticks: launch from the platform and escape at the arch', () => {
+    fresh(); Game.setup('level', 140); Cat.saves = 0; ok(Game.L.rise);
+    ok(Game.spawnRise(), 'spawned'); const s = Game.sticks.find(x => x.up); eq(s.st, ST.WARN); s.c = Game.target; s.c2 = ''; Game.spawnT = 99;
+    const y0 = s.y, m0 = Game.missed; let minY = y0;
+    for (let i = 0; i < 600 && s.up; i++) { Game.update(1 / 60); Game.spawnT = 99; if (s.up) minY = Math.min(minY, s.y); }
+    ok(minY < y0 - V.len, 'moved up'); eq(Game.missed, m0 + 1, 'escape counts as a miss');
+  });
+  await T('lantern sticks: bonus only, never a penalty', () => {
+    fresh(); Season.id = 'ramadan'; Game.setup('level', 30); const s = falling('b', '', KIND.LAMP), l0 = Game.lives, w0 = Game.wrong;
+    Game.grab(s); eq(Game.lanterns, 1); eq(Game.lives, l0); eq(Game.wrong, w0);
+    const s2 = falling('b', '', KIND.LAMP); Cat.saves = 0; Game.land(s2); eq(Game.lives, l0, 'dropping a lantern is fine');
+  });
+  await T('wind: gusts blow and sticks stay on the stage', () => {
+    fresh(); Game.setup('level', 106); ok(Game.L.wind); let moved = 0;
+    for (let i = 0; i < 900; i++) { Game.update(1 / 60); if (Math.abs(Game.wind) > 3 * V.u) moved++; for (const s of Game.sticks) if (s.st === ST.FALL) ok(s.x >= V.sx && s.x <= V.colX0, 'x out of stage'); }
+    ok(moved > 100, 'wind never blew');
+  });
+  await T('bot clears one level of every mechanic', () => {
+    const fails = [];
+    for (const n of [1, 6, 10, 31, 61, 76, 91, 106, 121, 136, 149]) { fresh({ stars: Array(n - 1).fill(3) }); const st = play('level', n); if (st !== 'end' || !Screens.end.r.win) fails.push(n + ':' + st); }
+    return fails.length ? 'lost: ' + fails.join(', ') : true;
+  });
+  await T('bot beats bosses (worlds 1, 5, 10)', () => {
+    const fails = [];
+    for (const n of [15, 75, 150]) { fresh({ stars: Array(n - 1).fill(3) }); const st = play('level', n, 300); if (st !== 'end' || !Screens.end.r.win) fails.push(n + ':' + st + ':' + (Screens.end.r && Screens.end.r.caught)); else ok(save.bossBeat[(n / PER_WORLD) - 1], 'boss flag'); }
+    return fails.length ? 'lost: ' + fails.join(', ') : true;
+  });
+  await T('endless and daily runs keep going without errors', () => {
+    fresh(); startRun('endless', 1); step(3); step(60, bot); ok(['play', 'end'].includes(SM.state));
+    fresh(); eq(play('daily', 1), 'end');
+  });
+  await T('daily: the same day gives the same seed and level', () => { fresh(); Game.setup('daily', 1); const a = [Game.seed, Game.n]; Game.setup('daily', 1); eq([Game.seed, Game.n].join(), a.join()); });
+  await T('XP and stickers are awarded after a win', () => {
+    fresh({ stars: [3, 3, 3] }); eq(play('level', 4), 'end'); const r = Screens.end.r;
+    ok(r.win && r.xp > 0, 'xp ' + r.xp); eq(save.xp, r.xp); ok(save.stickers['0_enter'], 'first sticker'); ok(save.log.some(e => e.k === 'win'), 'log');
+  });
+  await T('challenge links survive a round trip', () => {
+    for (const nm of ['Lina', 'سارة', 'Zoë 🎮']) { const o = { m: 'level', n: 37, s: 3141592653, sc: 999, nm }; eq(JSON.stringify(Challenge.decode(Challenge.encode(o))), JSON.stringify(o), nm); }
+    eq(Challenge.decode('not-base64!!'), null); eq(Challenge.decode(Challenge.encode({ m: 'hack', n: 1 })), null);
+  });
+  await T('history: backup and restore', () => { fresh({ coins: 500 }); History.backup('manual'); save.coins = 1; ok(History.restore(0)); eq(save.coins, 500); });
+  await T('every screen renders in every language', () => {
+    const bad = [], names = ['menu', 'map', 'modes', 'missions', 'shop', 'ach', 'stats', 'lb', 'settings', 'about', 'profile', 'album', 'saves'];
+    for (const l of Object.keys(LANGS)) {
+      fresh({ stars: Array(20).fill(3) }); LANG = save.settings.lang = l; Season.id = l === 'ar' ? 'ramadan' : 'eid';
+      for (const n of names) { try { SM.go(n); if (!UI.cur || UI.cur.innerHTML.length < 80 || /undefined|NaN|\{0\}/.test(UI.cur.textContent)) bad.push(l + ':' + n); } catch (e) { bad.push(l + ':' + n + ' ' + e.message); } }
+      for (const k of Object.keys(SHOP)) { SM.go('shop'); Actions.shopTab(k); if (/undefined|NaN/.test(UI.cur.textContent)) bad.push(l + ':shop.' + k); }
+      Season.modal(); Modal.close();
+    }
+    fresh(); SM.go('menu');
+    return bad.length ? bad.join(', ') : true;
+  });
+  await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
+
+  parent.__done(R);
+})();
+</script>
+
+<script>
+const frameEl = document.getElementById('game');
+window.__done = R => {
+  const pass = R.filter(r => r.ok).length;
+  document.getElementById('sum').innerHTML = '<span class="' + (pass === R.length ? 'ok' : 'bad') + '">' + pass + ' / ' + R.length + ' passed</span>';
+  document.getElementById('list').innerHTML = R.map(r => '<div class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? '✓ ' : '✗ ') + r.name + ' <small>(' + r.ms + ' ms)</small>' + (r.msg ? '<pre>' + r.msg.replace(/</g, '&lt;') + '</pre>' : '') + '</div>').join('');
+  document.getElementById('out').textContent = JSON.stringify({ pass, total: R.length, results: R });
+  document.title = (pass === R.length ? 'PASS ' : 'FAIL ') + pass + '/' + R.length;
+};
+// Tests start from an empty save. Whatever this origin had (your own game progress) is put back when they finish.
+const KEYS = ['fs_save', 'fs_backups'];
+try {
+  const kept = sessionStorage.getItem('fs_test_keep');
+  if (kept) KEYS.forEach(k => { const v = JSON.parse(kept)[k]; v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); });   // an interrupted run
+  const keep = {}; KEYS.forEach(k => { keep[k] = localStorage.getItem(k); });
+  sessionStorage.setItem('fs_test_keep', JSON.stringify(keep));
+  KEYS.forEach(k => localStorage.removeItem(k));
+  const done = window.__done;
+  window.__done = R => {                       // unload the game first (it saves on exit), then put the old data back
+    done(R);
+    frameEl.onload = () => { KEYS.forEach(k => keep[k] === null ? localStorage.removeItem(k) : localStorage.setItem(k, keep[k])); sessionStorage.removeItem('fs_test_keep'); };
+    frameEl.src = 'about:blank';
+  };
+} catch (e) { /* storage blocked */ }
+frameEl.onload = () => setTimeout(() => {
+  const d = frameEl.contentDocument, s = d.createElement('script');
+  s.textContent = document.getElementById('suite').textContent;
+  d.body.appendChild(s);
+}, 300);
+frameEl.src = '../index.html?nosw&event=none';
+</script>
+</body>
+</html>

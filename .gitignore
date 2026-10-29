@@ -1,0 +1,3 @@
+# Google Drive sync temp folder
+.tmp.driveupload/
+__pycache__/
