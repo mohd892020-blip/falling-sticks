@@ -1,6 +1,6 @@
 /* Falling Sticks service worker: offline app shell + cached Google Fonts.
    Bump CACHE whenever index.html changes so players get the new version. */
-const CACHE = 'falling-sticks-v2.5.1';
+const CACHE = 'falling-sticks-v2.6.0';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon.svg'];
 
 self.addEventListener('install', e => {

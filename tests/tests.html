@@ -225,6 +225,11 @@
     eq(play('level', 3), 'end'); ok(!Screens.end.r.test, 'a reached level is a normal run');
     Dev.on = false; Store.del('fs_dev'); SM.go('map'); ok(!UI.cur.querySelector('.sn.devo'), 'locked again');
   });
+  await T('level names: one unique English name per level, drawn on the column', () => {
+    eq(LEVEL_NAMES.length, MAX_LV); eq(new Set(LEVEL_NAMES).size, MAX_LV, 'unique');
+    fresh(); Game.setup('level', 33); eq(stageName(), LEVEL_NAMES[32]); Game.setup('endless', 1); eq(stageName(), 'Endless');
+    for (const n of LEVEL_NAMES) { const c = nameSign(n, '#22d3ee'); ok(c.width > 0 && c.height > 0, n); }
+  });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);

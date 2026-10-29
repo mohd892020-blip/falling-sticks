@@ -39,6 +39,7 @@ At the start of every session, read this file. At the end of every session, upda
 - World design (`KIT`): every world has its own arch + platform (`ARCH.w0…w9`, `PLAT.w0…w9`, decorations via `deco`). Shop item `world` (default, free) shows it; any bought arch/platform the player equips overrides it (user decision). `kitId(c)` resolves which one is shown.
 - Strolling animals (`Pets`): cats, puppies, a duck with ducklings, rabbits walk back and forth on the platform behind the sticks; they hop when a stick lands near them and are never hurt; tapping one shows a heart. Max 2 at once (1 on low quality or while the helper cat is out). Not in the tutorial or the intro.
 - Developer mode (`Dev`): tap the version number 7× on About, enter the owner code (given to the user in chat; only its hash is in `Dev.PIN` = `hashStr('fs-dev|' + code)`; to change it, compute a new hash). Then every map level opens, a 🔧 button on the map jumps to any level, and levels beyond the player's progress play as test runs (`Game.test`) that save nothing (`Progress.dry` restores the save; `History.off`). Tap 7× again to turn it off. Stored per device in localStorage `fs_dev`.
+- Level names (2.6, user request): every level has an English name in `LEVEL_NAMES` (15 per world, the 15th is the boss), shown as a vertical neon sign on the machine column (`stageName()`, `nameSign()`; world accent colour, red on boss levels; English in every language). It replaced the Arabic title on the column; the small 'falling sticks' logo at the top stays.
 - Mechanics 2.4: two-tone sticks from 76 (the tapped half counts; a miss if either half is the target), wind on even levels from 106, rising sticks from 136 (`CFG.floorSticks` extra sticks on the platform). Smart assist (`CFG.assist`, Settings toggle) after 3 fails on a level.
 
 ## Done
@@ -53,6 +54,7 @@ At the start of every session, read this file. At the end of every session, upda
 - v2.4.0 (2026-10-29): player profile + XP levels + titles + free reward track, sticker album (50 stickers), two-tone / wind / rising-stick mechanics with intro cards, smart assist, Ramadan lantern event + Eid gift (Hijri calendar), music layers that grow with the combo, faster music when a boss rages, Bebo eyes follow the target stick, squash & breathing, cat breathing, boss rise/sink animation, neon world title card, automated test suite (26 tests in `tests/`). Strings in all 7 languages. All tests pass; screens checked at 390×844 in English and Arabic.
 
 - v2.4.1 (2026-10-29): fixes from the first real-phone test — sharper canvas, smarter auto quality, no mid-play cache rebuilds, lighter machine blit, one hand per touch, FPS overlay with diagnostics.
+- v2.5.1 / v2.6.0 (2026-10-29): developer-mode tap is a real button (iPhone fix) with a countdown; 150 neon level names on the column. 30 tests pass. Published on GitHub Pages (2.5.1).
 - v2.5.0 (2026-10-29): city text signs removed, world-specific arch + platform for all 10 worlds, strolling animals, owner developer mode. 29 automated tests pass.
 
 ## Remaining
