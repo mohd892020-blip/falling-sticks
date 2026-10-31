@@ -246,6 +246,36 @@
     save.shop.owned.pet.push('crown'); save.shop.eq.pet = 'crown'; const c = document.createElement('canvas'); c.width = c.height = 120;
     for (const k of Pets.KINDS) drawPetIcon(c.getContext('2d'), k, 60, 100, 2, 'crown', 0);
   });
+  await T('shop: every platform is on sale', () => { const ids = SHOP.platform.map(i => i.id).join(); eq(ids, 'world,classic,neon,chrome,holo'); });
+  await T('touch: a late finger still counts on fast sticks', () => {
+    fresh(); Game.setup('level', 80); const T0 = Game.target, len = V.len, vy = 1000;
+    let s = falling(other(), T0); s.vy = vy; s.y += 200; const finger = s.y + len / 2 - vy * .05, c0 = Game.caught;   // aimed at the lower half 50 ms ago
+    Game.tap(s.x, finger, 'touch', true); eq(Game.caught, c0 + 1, 'two-tone uses where the stick was'); eq(Game.wrong, 0);
+    s = falling(T0); s.vy = vy; s.y += 200; const c1 = Game.caught; Game.tap(s.x, s.y - vy * .07, 'touch', true); eq(Game.caught, c1 + 1, 'behind a falling stick');
+    Game.resetStick(s); s = falling(T0); s.up = true; s.vy = -vy; s.y += 200; const c2 = Game.caught; Game.tap(s.x, s.y + len + vy * .07, 'touch', true); eq(Game.caught, c2 + 1, 'behind a rising stick');
+  });
+  await T('touch: magnet only pulls wanted sticks; the target wins between two sticks', () => {
+    fresh(); Game.setup('level', 80); Game.magnetT = 9; const u = V.u, w0 = Game.wrong, l0 = Game.lives;
+    let s = falling(other()); s.y += 150; Game.tap(s.x + V.stw / 2 + 24 * u, s.y + 30 * u, 'touch', true); eq(Game.wrong, w0, 'decoy pulled'); eq(Game.lives, l0); Game.resetStick(s);
+    Game.magnetT = 0; const L = Game.sticks.filter(q => !q.floor), a = L[3], b = L[4]; L.forEach(q => { q.st = ST.GONE; }); a.st = b.st = ST.HANG;
+    const d = falling(other()), g = falling(Game.target); d.y = g.y = V.arcTop + 200 * u; const mid = (d.x + g.x) / 2, c0 = Game.caught;
+    Game.tap(mid + (d.x - g.x) * .08, d.y + 30 * u, 'touch', true); eq(Game.caught, c0 + 1, 'target favoured');
+  });
+  await T('double drops leave room for two fingers', () => {
+    fresh(); Game.setup('level', 62); Game.L.rise = false;
+    for (let i = 0; i < 400; i++) {
+      Game.sticks.forEach(s => Game.resetStick(s)); Game.spawn(); const a = Game.lane, A = Game.sticks.filter(s => s.st !== ST.HANG).length;
+      Game.spawn(a); const B = Game.sticks.filter(s => s.st !== ST.HANG); eq(B.length, A + 1, 'second stick');
+      ok(Math.abs(B[0].i - B[1].i) >= CFG.chance.doubleGap, 'gap');
+    }
+  });
+  await T('a button pressed while another finger rests still works', () => {
+    fresh(); Game.setup('level', 3); SM.go('play'); UI.busy = 0; const b = document.querySelector('#bPause');
+    b.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, isPrimary: false, pointerId: 7, pointerType: 'touch' })); eq(SM.state, 'pause'); SM.go('menu');
+  });
+  await T('fall time does not depend on screen height', () => {
+    fresh(); const k = () => (V.fy - V.len - V.arcTop) / V.fall; const a = k(); ok(Math.abs(a - 1 / CFG.layout.fallRef) < 1e-9, 'ratio'); ok(Math.abs(V.fall / V.H - 1) < .02, 'reference stays near screen height at 390×844');
+  });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);
