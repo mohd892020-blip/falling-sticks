@@ -269,9 +269,27 @@
       ok(Math.abs(B[0].i - B[1].i) >= CFG.chance.doubleGap, 'gap');
     }
   });
-  await T('a button pressed while another finger rests still works', () => {
-    fresh(); Game.setup('level', 3); SM.go('play'); UI.busy = 0; const b = document.querySelector('#bPause');
-    b.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, isPrimary: false, pointerId: 7, pointerType: 'touch' })); eq(SM.state, 'pause'); SM.go('menu');
+  await T('a button pressed while another finger rests still works', async () => {
+    const press = (el, id, primary, type, x, y) => { const r = el.getBoundingClientRect(), o = { bubbles: true, isPrimary: primary, pointerId: id, pointerType: 'touch', clientX: x === undefined ? r.left + r.width / 2 : x, clientY: y === undefined ? r.top + r.height / 2 : y }; el.dispatchEvent(new PointerEvent(type, o)); };
+    const toPlay = async () => { SM.go('play'); UI.busy = 0; lastAct = null; await new Promise(r => setTimeout(r, 450)); };   // the HUD fades in before it can be touched
+    fresh(); Game.setup('level', 3); await toPlay(); const b = document.querySelector('#bPause');
+    press(cv, 1, true, 'pointerdown', 100, 400); press(b, 7, false, 'pointerdown'); press(b, 7, false, 'pointerup'); eq(SM.state, 'pause', 'second finger on Pause');
+    press(cv, 1, true, 'pointerup', 100, 400); await toPlay();
+    press(b, 2, true, 'pointerdown'); press(cv, 3, false, 'pointerdown', 100, 400); press(b, 2, true, 'pointerup'); eq(SM.state, 'pause', 'Pause finger first, other finger still down');
+    press(cv, 3, false, 'pointerup', 100, 400); await toPlay();
+    press(cv, 4, true, 'pointerdown', 100, 400); press(b, 5, false, 'pointerdown'); press(b, 5, false, 'pointerup', 150, 500); eq(SM.state, 'play', 'slid off: no action');
+    press(cv, 4, true, 'pointerup', 100, 400); SM.go('menu');
+  });
+  await T('touch: decoys keep a tight hit area; a pet next to a decoy gets petted', () => {
+    fresh(); Game.setup('level', 80); const u = V.u, w0 = Game.wrong, l0 = Game.lives;
+    let s = falling(other()); s.vy = 1000; s.y += 220; Game.tap(s.x, s.y - 60, 'touch', true); eq(Game.wrong, w0, 'tap 60 px above a fast decoy'); Game.resetStick(s);
+    Game.mode = 'level'; Pets.reset(); const p = Pets.comp(); ok(p, 'companion');
+    s = falling(other()); s.y = V.fy - V.len - 4 * u; p.x = s.x + V.stw / 2 + 10 * u; p.st = 'walk'; p.goal = null;
+    Game.tap(p.x, Pets.y() + p.dz - 12 * u, 'touch', true); eq(Game.wrong, w0, 'pet, not the decoy'); eq(Game.lives, l0); eq(p.st, 'love');
+  });
+  await T('difficulty: double drops ease in, gold rain is not a free pass', () => {
+    const a = cfg(61).dbl, b = cfg(76).dbl, c = cfg(130).dbl; ok(a > 0 && a < b && c === CFG.chance.double, [a, b, c].join());
+    const g = cfg(CFG.special.goldRain.fromWorld * PER_WORLD + CFG.special.goldRain.idx); eq(g.type, 'goldRain'); ok(g.goal >= cfg(g.n - 1).goal, 'gold rain goal');
   });
   await T('fall time does not depend on screen height', () => {
     fresh(); const k = () => (V.fy - V.len - V.arcTop) / V.fall; const a = k(); ok(Math.abs(a - 1 / CFG.layout.fallRef) < 1e-9, 'ratio'); ok(Math.abs(V.fall / V.H - 1) < .02, 'reference stays near screen height at 390×844');
