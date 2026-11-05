@@ -294,6 +294,20 @@
   await T('fall time does not depend on screen height', () => {
     fresh(); const k = () => (V.fy - V.len - V.arcTop) / V.fall; const a = k(); ok(Math.abs(a - 1 / CFG.layout.fallRef) < 1e-9, 'ratio'); ok(Math.abs(V.fall / V.H - 1) < .02, 'reference stays near screen height at 390×844');
   });
+  await T('music: three well-formed songs, spread evenly over each world', () => {
+    eq(SONGS.length, 3);
+    for (const S of SONGS) for (const k of S.form) { const x = S.sec[k]; eq(x.prog.length, 4, S.name); eq(x.lead.length, 4, S.name);
+      for (const r of [...x.lead, x.bass, x.kick, x.snare, x.hat, x.clap, x.dum, x.tek, x.ghost].filter(Boolean)) eq(r.length, 16, S.name + ' row ' + r); }
+    for (let w = 0; w < NW; w++) {
+      const L = []; for (let i = 1; i < PER_WORLD; i++) L.push(songFor(w * PER_WORLD + i));
+      const c = [0, 1, 2].map(k => L.filter(x => x === k).length).sort(); eq(c.join(), '4,5,5', 'world ' + w);
+      ok(L.every((x, i) => i === 0 || x !== L[i - 1]), 'same song twice in a row in world ' + w);
+    }
+    fresh(); Game.setup('level', 20); ok(/^s\d\.1\.1$/.test(Game.musicKey()), Game.musicKey()); Game.setup('level', 15); eq(Game.musicKey(), 'boss0');
+    const n0 = Sound.note, h0 = Sound.hiss; let notes = 0, hiss = 0; Sound.note = () => { notes++; }; Sound.hiss = () => { hiss++; };
+    try { for (let k = 0; k < 3; k++) { Music.tr = Music.build('s' + k + '.3.2'); for (let i = 0; i < 16 * 16; i++) Music.sched(i, i * .1, .1); } } finally { Sound.note = n0; Sound.hiss = h0; }
+    ok(notes > 600 && hiss > 300, notes + ' notes, ' + hiss + ' noises'); Music.tr = null;
+  });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);
