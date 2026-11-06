@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="game_bg">#070B16</color>
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/game_bg</item>
+        <item name="android:statusBarColor">@color/game_bg</item>
+        <item name="android:navigationBarColor">@color/game_bg</item>
+    </style>
+</resources>

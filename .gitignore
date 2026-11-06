@@ -1,3 +1,9 @@
 # Google Drive sync temp folder
 .tmp.driveupload/
 __pycache__/
+store/
+android/out/
+android/build/
+android/signing.properties
+*.keystore
+*.jks

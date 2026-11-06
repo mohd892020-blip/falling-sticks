@@ -308,6 +308,24 @@
     try { for (let k = 0; k < 3; k++) { Music.tr = Music.build('s' + k + '.3.2'); for (let i = 0; i < 16 * 16; i++) Music.sched(i, i * .1, .1); } } finally { Sound.note = n0; Sound.hiss = h0; }
     ok(notes > 600 && hiss > 300, notes + ' notes, ' + hiss + ' noises'); Music.tr = null;
   });
+  await T('no Arabic script anywhere while the game is in English (or another non-Arabic language)', () => {
+    const AR = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/, bad = [], names = ['splash', 'menu', 'map', 'modes', 'missions', 'shop', 'ach', 'stats', 'lb', 'settings', 'about', 'profile', 'album', 'pets', 'saves'];
+    for (const l of ['en', 'fr', 'tr']) {
+      fresh({ stars: Array(40).fill(3) }); LANG = save.settings.lang = l; applySettings && applySettings(); Season.id = 'ramadan';
+      for (const n of names) { SM.go(n); if (AR.test(UI.cur.textContent)) bad.push(l + ':' + n + ' «' + (UI.cur.textContent.match(new RegExp('.{0,12}' + AR.source + '+.{0,12}')) || [''])[0] + '»'); }
+      for (const k of Object.keys(SHOP)) { SM.go('shop'); Actions.shopTab(k); if (AR.test(UI.cur.textContent)) bad.push(l + ':shop.' + k); }
+      Game.setup('level', 33); SM.go('countdown'); SM.go('play'); if (AR.test(document.querySelector('#hud').textContent)) bad.push(l + ':hud');
+      Season.modal(); if (AR.test(document.querySelector('#modal').textContent)) bad.push(l + ':event'); Modal.close();
+      if (AR.test(stageName()) || AR.test(t('title')) || AR.test(t('sub'))) bad.push(l + ':title');
+    }
+    fresh(); SM.go('menu');
+    return bad.length ? bad.join(' | ') : true;
+  });
+  await T('Android back button: closes, pauses, steps back, exits from the menu', () => {
+    fresh(); SM.go('menu'); eq(appBack(), 'exit'); SM.go('shop'); eq(appBack(), 'ok'); eq(SM.state, 'menu');
+    Game.setup('level', 3); SM.go('play'); eq(appBack(), 'ok'); eq(SM.state, 'pause'); Modal.open('<p>x</p>'); appBack(); ok(!Modal.isOpen(), 'modal closed'); SM.go('menu');
+  });
+  await T('fonts ship with the game', async () => { const r = await fetch('../fonts/fonts.css'); ok(r.ok, 'fonts.css'); const css = await r.text(); for (const m of css.matchAll(/url\(([^)]+)\)/g)) ok((await fetch('../fonts/' + m[1])).ok, m[1]); ok(!/fonts\.googleapis/.test(document.head.innerHTML), 'no Google Fonts link'); });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);
