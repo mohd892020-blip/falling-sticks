@@ -7,3 +7,4 @@ android/build/
 android/signing.properties
 *.keystore
 *.jks
+android/libs/

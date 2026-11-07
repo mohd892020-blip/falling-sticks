@@ -13,8 +13,16 @@ Output in `android/out/`:
 - `FallingSticks-<version>.apk` — install directly on a phone (sideload).
 - `FallingSticks-<version>.aab` — upload to Google Play.
 
-The version comes from `VERSION` in `index.html` (`2.10.0` → versionCode `21000`), so bump `VERSION` before every
+The version comes from `VERSION` in `index.html` (`2.11.0` → versionCode `21100`), so bump `VERSION` before every
 Play release.
+
+### Libraries (`android/libs/`, git-ignored)
+
+The Google Play In-App Review card needs these `.aar` files in `android/libs/` (the build stops without them):
+- `review-2.0.2.aar` and `core-common-2.0.4.aar` from https://dl.google.com/android/maven2/com/google/android/play/
+- `play-services-tasks-18.2.0.aar` and `play-services-basement-18.9.0.aar` (from the Gradle cache, or the same Google Maven under `com/google/android/gms/`)
+
+`build.py` unpacks them, merges their resources, generates their `R` classes and adds their code to the dex.
 
 Tools come from the Unity 6 install on this PC (Android SDK, OpenJDK 17, bundletool). Override with the environment
 variables `ANDROID_SDK`, `JAVA_HOME`, `BUNDLETOOL`. No Gradle is needed.
@@ -38,3 +46,4 @@ uses this key as the upload key (Play App Signing keeps the real signing key).
 - `IN_APP` in `index.html` is true there: no service worker, challenge links point at the public website.
 - The Android back button calls `window.appBack()`: it closes a dialog, pauses, steps back, and leaves only from the main menu.
 - Portrait only, system bars hidden, screen kept on, the camera cut-out is padded.
+- `window.FSNative.review()` (a JavaScript bridge) asks Google Play for its rating card; `Review` in `index.html` decides when (after a 2+ star win from level 3, then every 10–18 levels, 2+ days apart, at most 5 times). Play shows it only for installs from the Play Store and limits how often.

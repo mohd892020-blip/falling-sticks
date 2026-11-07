@@ -116,10 +116,13 @@ html.lefty[dir=ltr] .hrow{flex-direction:row}
 .hmid{flex:1;min-width:0;text-align:center;line-height:1.05;background:var(--c-glass);border:1px solid var(--c-line);border-radius:14px;padding:3px 8px}
 #hLevel{font-size:.78rem;font-weight:800;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hScore{font-family:var(--f-disp);font-size:1.8rem;text-shadow:0 2px 0 rgba(0,0,0,.6)}
-#hLives{display:flex;gap:2px;align-items:center;background:var(--c-glass);border:1px solid var(--c-line);padding:7px 9px;border-radius:14px;flex:none;min-height:44px}
-#hLives svg{width:20px;height:20px;fill:#ef4444;filter:drop-shadow(0 0 4px rgba(239,68,68,.6));transition:transform .2s}
-#hLives svg.off{fill:var(--heart-off);filter:none}
-#hLives svg.brk{animation:hb .5s ease-out}
+#hLives{display:flex;gap:5px;align-items:center;background:var(--c-glass);border:1px solid var(--c-line);padding:7px 9px;border-radius:14px;flex:none;min-height:44px}
+#hLives .life{display:block;position:relative;width:9px;height:25px;border-radius:5px;background:linear-gradient(90deg,#fecdd3 0,#fb7185 30%,#e11d48 70%,#9f1239 100%);box-shadow:0 0 7px rgba(244,63,94,.7),inset 0 0 0 1.2px rgba(255,228,230,.55);transition:transform .2s}
+#hLives .life::after{content:'';position:absolute;left:2px;top:3px;width:2.5px;height:8px;border-radius:2px;background:rgba(255,255,255,.8)}
+#hLives .life.off{background:var(--heart-off);box-shadow:inset 0 0 0 1.2px rgba(148,163,184,.35)}
+#hLives .life.off::after{display:none}
+#hLives .life.brk{animation:lifeBrk .55s ease-out}
+@keyframes lifeBrk{0%{transform:scale(1.4);background:#fff}35%{transform:scale(1.15) rotate(-16deg)}70%{transform:rotate(8deg)}100%{transform:none}}
 #hLives .inf{font-family:var(--f-disp);font-size:1.3rem;color:#ef4444;padding:0 6px}
 @keyframes hb{0%{transform:scale(1.5)}40%{transform:scale(.7) rotate(-15deg)}100%{transform:scale(1)}}
 #goal{margin:10px auto 0;width:max-content;max-width:100%;display:flex;align-items:center;gap:8px;font-family:var(--f-disp);font-size:1.3rem;padding:4px 18px;border-radius:var(--r-pill);border:2px solid var(--target);background:var(--c-glass);box-shadow:0 0 16px color-mix(in srgb,var(--target) 45%,transparent);transition:border-color .3s}
@@ -446,7 +449,7 @@ html.reduce *,html.reduce *::before,html.reduce *::after{animation-duration:.001
 .days{grid-template-columns:repeat(4,minmax(0,1fr))}.day b{font-size:1rem;gap:2px}.day b .coin{width:.85em;height:.85em}
 .prof .grow{min-width:0}.prof h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vs{flex-wrap:wrap}
-#hLives:has(svg:nth-child(5)) svg{width:15px;height:15px}
+#hLives:has(.life:nth-child(5)){gap:4px}#hLives:has(.life:nth-child(5)) .life{width:7px;height:21px}
 @media (max-width:359px){.hrow{gap:4px}.hbtn{width:40px;height:40px}#hLives{padding:7px 5px}.hmid{padding:3px 4px}#hLevel{font-size:.72rem}}
 @media (max-height:860px){#combo small{display:none}#combo{margin-top:4px}}
 @media (max-height:700px){.mgrid{gap:8px}.mgrid .btn{min-height:46px;flex-direction:row;gap:6px;padding:6px;font-size:1.05rem}.mgrid .btn .e{font-size:1.1rem}.mgrid .btn small{display:none}
@@ -505,7 +508,7 @@ input[type=range]{height:44px}
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '2.10.0';
+const VERSION = '2.11.0';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
@@ -541,6 +544,8 @@ const CFG = {
   hitStop: { catch: .045, bomb: .09 },                  // tiny freeze on impact (seconds)
   quick: { frac: .34, bonus: 5 },                       // "Quick!" = caught in the first third of the fall (+bonus × multiplier)
   drone: { from: 16, every: [20, 30], speed: .17, slow: 3, slowScale: .55, magnet: 5, magnetMul: 2.6, x2: 10 },
+  spring: { from: 3, early: 15, dur: 10, first: [4, 7], passes: 2 },   // bouncy springs power-up: a drone brings it once per level in levels from..early, later it is one of the drone powers
+  review: { first: 3, gap: [10, 18], days: 2, max: 5 },              // Play rating card: first after a 2+ star win from level 3, then every 10-18 levels (2+ days apart), at most 5 times
   cat: { from: 17, every: [16, 28], speed: 44, saves: 1, goldCoins: 5 },
   special: {                                            // special level types by position inside a world
     survive: { idx: 7, fromWorld: 1, base: 22, perWorld: 2 },
@@ -644,7 +649,7 @@ const INTROS = [
   { n: CFG.unlock.colors3, key: 'colors3' }, { n: CFG.unlock.switch, key: 'switch' },
   { n: CFG.unlock.gold, key: 'gold' }, { n: CFG.unlock.double, key: 'double' },
   { n: CFG.unlock.bomb, key: 'bomb' }, { n: CFG.unlock.shift, key: 'shift' },
-  { n: CFG.drone.from, key: 'drone' }, { n: CFG.cat.from, key: 'cat' },
+  { n: CFG.spring.from, key: 'spring' }, { n: CFG.drone.from, key: 'drone' }, { n: CFG.cat.from, key: 'cat' },
   { n: CFG.special.survive.fromWorld * PER_WORLD + CFG.special.survive.idx, key: 'survive' },
   { n: CFG.special.goldRain.fromWorld * PER_WORLD + CFG.special.goldRain.idx, key: 'goldRain' },
   { n: CFG.special.dark.fromWorld * PER_WORLD + CFG.special.dark.idx, key: 'dark' },
@@ -817,11 +822,12 @@ const STR = {
     petPick: 'اختار', petOn: 'معك ✓', petName: 'الاسم', petAcc: 'الإكسسوارات', petSave: 'كواك! كمان مرة!', petCalm: 'روّق…', it_pet_none: 'بدون', it_pet_bow: 'فيونكة',
     it_pet_collar: 'طوق', it_pet_party: 'طاقية حفلة', it_pet_crown: 'تاج',
     rotate: 'لفّ جوالك بالطول عشان تلعب',
-    clog: [['2.10.0', 'يد واقعية بتمسك العصا وبترفعها، أغاني جديدة، الخطوط صارت جوّا اللعبة (بتشتغل بدون إنترنت)، وما في ولا كلمة عربية لما تكون اللعبة بالإنجليزي.'], ['2.9.0', 'ثلاث أغاني حماسية جديدة للمراحل: إلكترونية، ودبكة بإيقاع الدربكة، وسريعة مشرقة، موزّعة على المراحل وبتسرع مع التقدّم.'], ['2.8.1', 'لمس أعدل جنب العصي الغلط والحيوانات، زر الإيقاف بيشتغل مع إصبعين، الزعيم الأول أسهل مع المساعدة الذكية، والمطر الذهبي ما عاد هدية ببلاش.'], ['2.8.0', 'لمس أدق (ما عاد تخسر قلب وإنت ضاغط صح)، صعوبة متدرّجة أكثر وإيقاع أسرع، المنصات رجعت للمتجر، والشاشات الصغيرة صارت مرتبة.'], ['2.7.0', 'رفاق حيوانات: اختار قطة أو جرو أو بطّة أو أرنب يتمشّى معك، سمّيه، ولبّسه إكسسوارات. وكل واحد إله مهارة بتساعدك.'], ['2.6.0', 'كل مرحلة إلها اسم خاص بيضوي بالنيون على عمود الماكينة، وزر وضع المطوّر صار بيستجيب على كل التلفونات.'], ['2.5.0', 'كل عالم إله قوس ومنصة بتصميمه الخاص، وقطط وجراوي وبط وأرانب بتتمشّى تحت العصي، وشلنا اللافتات المكتوبة من المدينة عشان العصي تبيّن أوضح.'], ['2.4.1', 'رسومات أوضح على التلفون، لعب أنعم بدون تقطيع، وإيد وحدة بس لما تلمس بأكثر من إصبع.'], ['2.4.0', 'ملف لاعب فيه خبرة ومستويات وألقاب ومسار جوايز ببلاش، ألبوم ملصقات، ميكانيكيات جديدة (عصي بلونين، هوا، عصي طالعة)، مساعدة ذكية، مناسبة فوانيس رمضان وهدية العيد، وموسيقى بتعلى مع الكومبو وحركة أنعم.'], ['2.3.0', 'الثيم الافتراضي صار نهار، وسجل حفظ فيه نسخ احتياطية تلقائية واسترجاع وسجل للتقدّم.'], ['2.2.0', 'عرض تعريفي أول مرة، خريطة مراحل بطريق متعرّج، 6 ثيمات (الغروب افتراضي)، روابط تحدّي للأصحاب، منافسين آليين معلنين، و5 لغات جديدة.'], ['2.1.0', 'لمس دقيق مع قفاز بيمسك العصا، مسكة سريعة، توقف لحظي عند الضربة، درون بقوى خاصة، بسّة الحارة، زعماء إلهم روبوت وحركات خاصة، مراحل صمود ومطر ذهبي وظلام، مهام يومية، إكسسوارات بيبو، عدّاد FPS.'], ['2.0.0', 'إعادة بناء كاملة: قائمة رئيسية، 4 أنماط لعب، متجر، 26 إنجاز، إحصائيات، صدارة محلية، إعدادات كاملة، موسيقى مولّدة لكل عالم، شخصية بيبو، مدينة أركيد متحركة، تعليمات تفاعلية، PWA.'], ['1.0.0', 'النسخة الأولى: 150 مرحلة، خريطة ونجوم، كومبو.']],
+    clog: [['2.11.0', 'إيد متحركة بشاشة البداية، عصي حياة بدل القلوب، رمية احتفال بعصا الفوز (نجمتين أو أكثر)، زنبركات النطّ كقوة جديدة من المرحلة 3، ونافذة تقييم Google Play.'], ['2.10.0', 'يد واقعية بتمسك العصا وبترفعها، أغاني جديدة، الخطوط صارت جوّا اللعبة (بتشتغل بدون إنترنت)، وما في ولا كلمة عربية لما تكون اللعبة بالإنجليزي.'], ['2.9.0', 'ثلاث أغاني حماسية جديدة للمراحل: إلكترونية، ودبكة بإيقاع الدربكة، وسريعة مشرقة، موزّعة على المراحل وبتسرع مع التقدّم.'], ['2.8.1', 'لمس أعدل جنب العصي الغلط والحيوانات، زر الإيقاف بيشتغل مع إصبعين، الزعيم الأول أسهل مع المساعدة الذكية، والمطر الذهبي ما عاد هدية ببلاش.'], ['2.8.0', 'لمس أدق (ما عاد تخسر قلب وإنت ضاغط صح)، صعوبة متدرّجة أكثر وإيقاع أسرع، المنصات رجعت للمتجر، والشاشات الصغيرة صارت مرتبة.'], ['2.7.0', 'رفاق حيوانات: اختار قطة أو جرو أو بطّة أو أرنب يتمشّى معك، سمّيه، ولبّسه إكسسوارات. وكل واحد إله مهارة بتساعدك.'], ['2.6.0', 'كل مرحلة إلها اسم خاص بيضوي بالنيون على عمود الماكينة، وزر وضع المطوّر صار بيستجيب على كل التلفونات.'], ['2.5.0', 'كل عالم إله قوس ومنصة بتصميمه الخاص، وقطط وجراوي وبط وأرانب بتتمشّى تحت العصي، وشلنا اللافتات المكتوبة من المدينة عشان العصي تبيّن أوضح.'], ['2.4.1', 'رسومات أوضح على التلفون، لعب أنعم بدون تقطيع، وإيد وحدة بس لما تلمس بأكثر من إصبع.'], ['2.4.0', 'ملف لاعب فيه خبرة ومستويات وألقاب ومسار جوايز ببلاش، ألبوم ملصقات، ميكانيكيات جديدة (عصي بلونين، هوا، عصي طالعة)، مساعدة ذكية، مناسبة فوانيس رمضان وهدية العيد، وموسيقى بتعلى مع الكومبو وحركة أنعم.'], ['2.3.0', 'الثيم الافتراضي صار نهار، وسجل حفظ فيه نسخ احتياطية تلقائية واسترجاع وسجل للتقدّم.'], ['2.2.0', 'عرض تعريفي أول مرة، خريطة مراحل بطريق متعرّج، 6 ثيمات (الغروب افتراضي)، روابط تحدّي للأصحاب، منافسين آليين معلنين، و5 لغات جديدة.'], ['2.1.0', 'لمس دقيق مع قفاز بيمسك العصا، مسكة سريعة، توقف لحظي عند الضربة، درون بقوى خاصة، بسّة الحارة، زعماء إلهم روبوت وحركات خاصة، مراحل صمود ومطر ذهبي وظلام، مهام يومية، إكسسوارات بيبو، عدّاد FPS.'], ['2.0.0', 'إعادة بناء كاملة: قائمة رئيسية، 4 أنماط لعب، متجر، 26 إنجاز، إحصائيات، صدارة محلية، إعدادات كاملة، موسيقى مولّدة لكل عالم، شخصية بيبو، مدينة أركيد متحركة، تعليمات تفاعلية، PWA.'], ['1.0.0', 'النسخة الأولى: 150 مرحلة، خريطة ونجوم، كومبو.']],
     gift: 'المكافأة', mins: '{0} د', hours: '{0} س {1} د',
-    pw_heart: '+1 ❤️', pw_slow: 'إبطاء!', pw_magnet: 'مغناطيس!', pw_x2: 'نقاط ×2', quick: 'سريع!', catSave: 'البسّة رجّعتها! 🐾', enraged: 'الزعيم عصّب! 😡',
+    pw_spring: 'زنبركات!', pw_heart: '+1 ❤️', pw_slow: 'إبطاء!', pw_magnet: 'مغناطيس!', pw_x2: 'نقاط ×2', quick: 'سريع!', catSave: 'البسّة رجّعتها! 🐾', enraged: 'الزعيم عصّب! 😡',
     bossName: 'زعيم {0}', hudSurvive: 'صمود · {0} ث', survivedN: 'صمدت {0} من {1} ثانية',
     tw_rapid: '⚡ دفعات سريعة: كل شوي الزعيم بيرمي 3 عصي ورا بعض.', tw_fake: '😜 خدعة: بعض العصي بتهتز وما بتنزل — لا تستعجل!', tw_blackout: '🌑 انطفاء: الأضواء بتطفي لحظات — تابع شريط الهدف فوق.', tw_swap: '🔄 تبديل أسرع: لون الهدف بيتغيّر أكثر.', tw_enrage: '😡 عصبية: بنص المعركة الزعيم بيسرّع.',
+    in_spring: 'زنبركات النطّ', in_springD: 'كل شوي بيجيك درون شايل زنبركات، اكبس عليه! لمدة 10 ثواني العصي اللي بدك إياها بترتد لفوق بدل ما توقع على الأرض، فبتصير معك فرصة تانية تمسكها.',
     in_drone: 'الدرون والقوى الخاصة', in_droneD: 'كل شوي بيمرق درون شايل قوة خاصة: قلب، إبطاء، مغناطيس أو نقاط ×2. المسه عشان تاخدها!',
     in_cat: 'بسّة الحارة', in_catD: 'بسّة بتتمشى على المنصة. إذا وقعت عصا الهدف عليها بترجّعها لفوق مرة وحدة بكل مرحلة، والذهبية عليها بتعطيك عملات. ولو لمستها… بتخرخر 😺',
     in_survive: 'مرحلة صمود ⏳', in_surviveD: 'ما في عدد مسكات مطلوب — بس اصمد لآخر الوقت بدون ما تخسر كل قلوبك.',
@@ -910,11 +916,12 @@ const STR = {
     petPick: 'Choose', petOn: 'With you ✓', petName: 'Name', petAcc: 'Accessories', petSave: 'Quack! Again!', petCalm: 'Calm…', it_pet_none: 'None',
     it_pet_bow: 'Bow', it_pet_collar: 'Collar', it_pet_party: 'Party hat', it_pet_crown: 'Crown',
     rotate: 'Turn your phone upright to play',
-    clog: [['2.10.0', 'A realistic hand that grips and lifts the stick, built-in fonts (works fully offline), and no Arabic text when the game is in English.'], ['2.9.0', 'Three new upbeat level songs (electro, a darbuka dabke and a bright breakbeat), spread over the levels and a little faster as you progress.'], ['2.8.1', 'Fairer taps near decoys and pets, Pause works with two fingers, the first boss is easier with smart assist, and gold rain is no longer a free pass.'], ['2.8.0', 'Fairer touch (no more lost hearts on correct taps), a smoother difficulty curve and faster pace, platforms are back in the shop, and small screens fit properly.'], ['2.7.0', 'Pet companions: pick a cat, puppy, duck or bunny to walk with you, name it and dress it up. Each one has a skill that helps you.'], ['2.6.0', 'Every level has its own name glowing in neon on the machine column; the developer-mode tap now works on every phone.'], ['2.5.0', 'Every world has its own arch and platform; cats, puppies, ducks and rabbits stroll under the sticks; the city signs are gone so the sticks are easier to see.'], ['2.4.1', 'Sharper graphics on phones, smoother play without hitches, and a single hand when you touch with several fingers.'], ['2.4.0', 'Player profile with XP, levels, titles and a free reward track; sticker album; new mechanics (two-tone, wind, rising sticks); smart assist; Ramadan lantern event and Eid gift; music that grows with your combo and smoother animation.'], ['2.3.0', 'Day is now the default theme; new save history with automatic backups, restore and a progress log.'], ['2.2.0', 'First-run intro, saga-style level map, 6 themes (Sunset by default), friend challenge links, labelled rival bots and 5 new languages.'], ['2.1.0', 'Precise touch with a grabbing glove, quick catches, hit-stop, power-up drones, the street cat, boss robots with twists, survival / golden rain / lights-out levels, daily missions, Bebo accessories, FPS counter.'], ['2.0.0', 'Full rebuild: main menu, 4 game modes, shop, 26 achievements, stats, local leaderboard, full settings, generated music per world, Bebo the mascot, animated arcade city, interactive tutorial, PWA.'], ['1.0.0', 'First version: 150 levels, map and stars, combo.']],
+    clog: [['2.11.0', 'An animated hand on the title screens, life sticks instead of hearts, a celebration throw with the winning stick (2+ stars), a bouncy springs power-up from level 3, and the Google Play rating card.'], ['2.10.0', 'A realistic hand that grips and lifts the stick, built-in fonts (works fully offline), and no Arabic text when the game is in English.'], ['2.9.0', 'Three new upbeat level songs (electro, a darbuka dabke and a bright breakbeat), spread over the levels and a little faster as you progress.'], ['2.8.1', 'Fairer taps near decoys and pets, Pause works with two fingers, the first boss is easier with smart assist, and gold rain is no longer a free pass.'], ['2.8.0', 'Fairer touch (no more lost hearts on correct taps), a smoother difficulty curve and faster pace, platforms are back in the shop, and small screens fit properly.'], ['2.7.0', 'Pet companions: pick a cat, puppy, duck or bunny to walk with you, name it and dress it up. Each one has a skill that helps you.'], ['2.6.0', 'Every level has its own name glowing in neon on the machine column; the developer-mode tap now works on every phone.'], ['2.5.0', 'Every world has its own arch and platform; cats, puppies, ducks and rabbits stroll under the sticks; the city signs are gone so the sticks are easier to see.'], ['2.4.1', 'Sharper graphics on phones, smoother play without hitches, and a single hand when you touch with several fingers.'], ['2.4.0', 'Player profile with XP, levels, titles and a free reward track; sticker album; new mechanics (two-tone, wind, rising sticks); smart assist; Ramadan lantern event and Eid gift; music that grows with your combo and smoother animation.'], ['2.3.0', 'Day is now the default theme; new save history with automatic backups, restore and a progress log.'], ['2.2.0', 'First-run intro, saga-style level map, 6 themes (Sunset by default), friend challenge links, labelled rival bots and 5 new languages.'], ['2.1.0', 'Precise touch with a grabbing glove, quick catches, hit-stop, power-up drones, the street cat, boss robots with twists, survival / golden rain / lights-out levels, daily missions, Bebo accessories, FPS counter.'], ['2.0.0', 'Full rebuild: main menu, 4 game modes, shop, 26 achievements, stats, local leaderboard, full settings, generated music per world, Bebo the mascot, animated arcade city, interactive tutorial, PWA.'], ['1.0.0', 'First version: 150 levels, map and stars, combo.']],
     gift: 'Reward', mins: '{0}m', hours: '{0}h {1}m',
-    pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', catSave: 'The cat saved it! 🐾', enraged: 'The boss is furious! 😡',
+    pw_spring: 'Springs!', pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', catSave: 'The cat saved it! 🐾', enraged: 'The boss is furious! 😡',
     bossName: 'Boss of {0}', hudSurvive: 'Survive · {0}s', survivedN: 'Survived {0} of {1} s',
     tw_rapid: '⚡ Rapid fire: every few seconds the boss throws 3 sticks in a row.', tw_fake: '😜 Feints: some sticks shake but never drop — stay calm!', tw_blackout: '🌑 Blackout: the lights cut out for a moment — watch the target banner.', tw_swap: '🔄 Fast swaps: the target colour changes more often.', tw_enrage: '😡 Rage: at half health the boss speeds up.',
+    in_spring: 'Bouncy springs', in_springD: 'Now and then a drone brings springs. Tap it! For 10 seconds, the sticks you need bounce back up instead of hitting the floor — a second chance to catch them.',
     in_drone: 'Drones & powers', in_droneD: 'Now and then a drone flies by carrying a power: a heart, slow-mo, a magnet or double points. Tap it to grab it!',
     in_cat: 'The street cat', in_catD: 'A cat strolls across the platform. If a target stick lands on it, it bats it back up once per level, and a golden stick on it gives coins. Pet it… it purrs 😺',
     in_survive: 'Survival level ⏳', in_surviveD: 'No catch goal — just survive until the timer ends without losing all your hearts.',
@@ -1032,11 +1039,12 @@ STR.fr = {
     petLock: 'Débloqué au niveau {0}', petPick: 'Choisir', petOn: 'Avec toi ✓', petName: 'Nom', petAcc: 'Accessoires', petSave: 'Coin ! Encore !',
     petCalm: 'Calme…', it_pet_none: 'Aucun', it_pet_bow: 'Nœud', it_pet_collar: 'Collier', it_pet_party: 'Chapeau de fête', it_pet_crown: 'Couronne',
     rotate: 'Tourne ton téléphone en portrait pour jouer',
-    clog: [['2.10.0', 'Une vraie main qui saisit et soulève le bâton, polices intégrées (fonctionne hors ligne) et plus de texte arabe quand le jeu est en anglais.'], ['2.9.0', 'Trois nouvelles musiques entraînantes pour les niveaux (électro, dabké à la darbouka et breakbeat lumineux), réparties sur les niveaux et un peu plus rapides au fil de la progression.'], ['2.8.1', 'Appuis plus justes près des leurres et des animaux, Pause marche à deux doigts, le premier boss est plus facile avec l’aide intelligente, et la pluie d’or n’est plus un cadeau.'], ['2.8.0', 'Toucher plus juste (plus de cœurs perdus sur un bon appui), difficulté mieux dosée et rythme plus rapide, les plateformes reviennent en boutique, et les petits écrans s’affichent bien.'], ['2.7.0', 'Compagnons : choisis un chat, un chiot, un canard ou un lapin, donne-lui un nom et des accessoires. Chacun a un talent qui t’aide.'], ['2.6.0', 'Chaque niveau a son propre nom qui brille en néon sur la colonne de la machine ; l’accès au mode développeur marche sur tous les téléphones.'], ['2.5.0', 'Chaque monde a son arche et sa plateforme ; chats, chiots, canards et lapins se promènent sous les bâtons ; les enseignes de la ville ont disparu pour mieux voir les bâtons.'], ['2.4.1', 'Graphismes plus nets sur téléphone, jeu plus fluide sans à-coups, et une seule main quand tu touches avec plusieurs doigts.'], ['2.4.0', 'Profil joueur avec XP, niveaux, titres et parcours de récompenses gratuit ; album d’autocollants ; nouvelles mécaniques (bicolores, vent, bâtons montants) ; aide intelligente ; événement des lanternes du Ramadan et cadeau de l’Aïd ; musique qui monte avec le combo et animations plus fluides.'], ['2.3.0', 'Le thème Jour devient le thème par défaut ; nouvel historique avec sauvegardes automatiques, restauration et journal de progression.'], ['2.2.0', 'Intro au premier lancement, carte des niveaux en chemin sinueux, 6 thèmes (Coucher de soleil par défaut), défis entre amis par lien, rivaux robots identifiés et 5 nouvelles langues.'], ['2.1.0', 'Toucher précis avec un gant attrapeur, prises rapides, arrêt sur impact, drones à pouvoirs, le chat des rues, robots boss avec surprises, niveaux survie / pluie d’or / lumières éteintes, missions du jour, accessoires pour Bebo, compteur FPS.'], ['2.0.0', 'Refonte complète : menu principal, 4 modes de jeu, boutique, 26 succès, stats, classement local, réglages complets, musique générée pour chaque monde, Bebo la mascotte, ville d’arcade animée, tutoriel interactif, PWA.'], ['1.0.0', 'Première version : 150 niveaux, carte et étoiles, combo.']],
+    clog: [['2.11.0', 'Une main animée sur l’écran titre, des bâtons de vie à la place des cœurs, un lancer de fête avec le bâton gagnant (2 étoiles ou plus), le pouvoir ressorts dès le niveau 3 et la carte de note Google Play.'], ['2.10.0', 'Une vraie main qui saisit et soulève le bâton, polices intégrées (fonctionne hors ligne) et plus de texte arabe quand le jeu est en anglais.'], ['2.9.0', 'Trois nouvelles musiques entraînantes pour les niveaux (électro, dabké à la darbouka et breakbeat lumineux), réparties sur les niveaux et un peu plus rapides au fil de la progression.'], ['2.8.1', 'Appuis plus justes près des leurres et des animaux, Pause marche à deux doigts, le premier boss est plus facile avec l’aide intelligente, et la pluie d’or n’est plus un cadeau.'], ['2.8.0', 'Toucher plus juste (plus de cœurs perdus sur un bon appui), difficulté mieux dosée et rythme plus rapide, les plateformes reviennent en boutique, et les petits écrans s’affichent bien.'], ['2.7.0', 'Compagnons : choisis un chat, un chiot, un canard ou un lapin, donne-lui un nom et des accessoires. Chacun a un talent qui t’aide.'], ['2.6.0', 'Chaque niveau a son propre nom qui brille en néon sur la colonne de la machine ; l’accès au mode développeur marche sur tous les téléphones.'], ['2.5.0', 'Chaque monde a son arche et sa plateforme ; chats, chiots, canards et lapins se promènent sous les bâtons ; les enseignes de la ville ont disparu pour mieux voir les bâtons.'], ['2.4.1', 'Graphismes plus nets sur téléphone, jeu plus fluide sans à-coups, et une seule main quand tu touches avec plusieurs doigts.'], ['2.4.0', 'Profil joueur avec XP, niveaux, titres et parcours de récompenses gratuit ; album d’autocollants ; nouvelles mécaniques (bicolores, vent, bâtons montants) ; aide intelligente ; événement des lanternes du Ramadan et cadeau de l’Aïd ; musique qui monte avec le combo et animations plus fluides.'], ['2.3.0', 'Le thème Jour devient le thème par défaut ; nouvel historique avec sauvegardes automatiques, restauration et journal de progression.'], ['2.2.0', 'Intro au premier lancement, carte des niveaux en chemin sinueux, 6 thèmes (Coucher de soleil par défaut), défis entre amis par lien, rivaux robots identifiés et 5 nouvelles langues.'], ['2.1.0', 'Toucher précis avec un gant attrapeur, prises rapides, arrêt sur impact, drones à pouvoirs, le chat des rues, robots boss avec surprises, niveaux survie / pluie d’or / lumières éteintes, missions du jour, accessoires pour Bebo, compteur FPS.'], ['2.0.0', 'Refonte complète : menu principal, 4 modes de jeu, boutique, 26 succès, stats, classement local, réglages complets, musique générée pour chaque monde, Bebo la mascotte, ville d’arcade animée, tutoriel interactif, PWA.'], ['1.0.0', 'Première version : 150 niveaux, carte et étoiles, combo.']],
     gift: 'Récompense', mins: '{0} min', hours: '{0} h {1} min',
-    pw_heart: '+1 ❤️', pw_slow: 'Ralenti !', pw_magnet: 'Aimant !', pw_x2: 'Points doublés !', quick: 'Rapide !', catSave: 'Le chat l’a sauvé ! 🐾', enraged: 'Le boss est furieux ! 😡',
+    pw_spring: 'Ressorts !', pw_heart: '+1 ❤️', pw_slow: 'Ralenti !', pw_magnet: 'Aimant !', pw_x2: 'Points doublés !', quick: 'Rapide !', catSave: 'Le chat l’a sauvé ! 🐾', enraged: 'Le boss est furieux ! 😡',
     bossName: 'Boss : {0}', hudSurvive: 'Survie · {0} s', survivedN: 'Survie : {0} s sur {1}',
     tw_rapid: '⚡ Rafale : régulièrement, le boss lance 3 bâtons à la suite.', tw_fake: '😜 Feintes : certains bâtons tremblent mais ne tombent jamais — reste calme !', tw_blackout: '🌑 Black-out : les lumières s’éteignent un instant — surveille la bannière de la cible.', tw_swap: '🔄 Changements rapides : la couleur cible change plus souvent.', tw_enrage: '😡 Rage : à la moitié de sa vie, le boss accélère.',
+    in_spring: 'Ressorts rebondissants', in_springD: 'De temps en temps, un drone apporte des ressorts. Touche-le ! Pendant 10 s, les bâtons que tu veux rebondissent au lieu de toucher le sol : une seconde chance de les attraper.',
     in_drone: 'Drones et pouvoirs', in_droneD: 'De temps en temps, un drone passe avec un pouvoir : un cœur, un ralenti, un aimant ou des points doublés. Touche-le pour l’attraper !',
     in_cat: 'Le chat des rues', in_catD: 'Un chat se balade sur la plateforme. Si un bâton cible tombe sur lui, il le renvoie en l’air une fois par niveau, et un bâton doré sur lui donne des pièces. Caresse-le… il ronronne 😺',
     in_survive: 'Niveau survie ⏳', in_surviveD: 'Pas d’objectif de prises — survis jusqu’à la fin du chrono sans perdre tous tes cœurs.',
@@ -1142,11 +1150,12 @@ STR.es = {
     petLock: 'Se desbloquea en el nivel {0}', petPick: 'Elegir', petOn: 'Contigo ✓', petName: 'Nombre', petAcc: 'Accesorios', petSave: '¡Cuac! ¡Otra vez!',
     petCalm: 'Calma…', it_pet_none: 'Ninguno', it_pet_bow: 'Lazo', it_pet_collar: 'Collar', it_pet_party: 'Gorro de fiesta', it_pet_crown: 'Corona',
     rotate: 'Gira el móvil en vertical para jugar',
-    clog: [['2.10.0', 'Una mano realista que agarra y levanta el palito, fuentes integradas (funciona sin conexión) y nada de texto árabe con el juego en inglés.'], ['2.9.0', 'Tres nuevas canciones animadas para los niveles (electro, dabke con darbuka y un breakbeat luminoso), repartidas por los niveles y algo más rápidas al avanzar.'], ['2.8.1', 'Toques más justos junto a señuelos y mascotas, Pausa funciona con dos dedos, el primer jefe es más fácil con la ayuda inteligente y la lluvia de oro ya no es un regalo.'], ['2.8.0', 'Toque más justo (ya no pierdes corazones al tocar bien), dificultad más gradual y ritmo más rápido, las plataformas vuelven a la tienda y las pantallas pequeñas se ven bien.'], ['2.7.0', 'Compañeros: elige un gato, cachorro, pato o conejo, ponle nombre y accesorios. Cada uno tiene una habilidad que te ayuda.'], ['2.6.0', 'Cada nivel tiene su propio nombre en neón sobre la columna de la máquina; el acceso al modo desarrollador funciona en todos los móviles.'], ['2.5.0', 'Cada mundo tiene su propio arco y plataforma; gatos, cachorros, patos y conejos pasean bajo los palitos; quitamos los letreros de la ciudad para ver mejor los palitos.'], ['2.4.1', 'Gráficos más nítidos en el móvil, juego más fluido sin tirones y una sola mano al tocar con varios dedos.'], ['2.4.0', 'Perfil de jugador con XP, niveles, títulos y ruta de premios gratis; álbum de pegatinas; nuevas mecánicas (bicolores, viento, palitos que suben); ayuda inteligente; evento de faroles de Ramadán y regalo de Eid; música que crece con el combo y animaciones más suaves.'], ['2.3.0', 'Día es ahora el tema por defecto; nuevo historial con copias automáticas, restauración y registro de progreso.'], ['2.2.0', 'Intro al primer inicio, mapa de niveles con camino sinuoso, 6 temas (Atardecer por defecto), retos a amigos por enlace, rivales bot identificados y 5 idiomas nuevos.'], ['2.1.0', 'Toque preciso con un guante que agarra, atrapadas rápidas, pausa de impacto, drones con poderes, el gato callejero, jefes robot con sorpresas, niveles de supervivencia / lluvia dorada / apagón, misiones diarias, accesorios para Bebo, contador de FPS.'], ['2.0.0', 'Reconstrucción completa: menú principal, 4 modos de juego, tienda, 26 logros, estadísticas, ranking local, ajustes completos, música generada para cada mundo, Bebo la mascota, ciudad arcade animada, tutorial interactivo, PWA.'], ['1.0.0', 'Primera versión: 150 niveles, mapa y estrellas, combo.']],
+    clog: [['2.11.0', 'Una mano animada en la pantalla de inicio, palitos de vida en vez de corazones, un lanzamiento de celebración con el palito ganador (2+ estrellas), el poder de resortes desde el nivel 3 y la tarjeta de valoración de Google Play.'], ['2.10.0', 'Una mano realista que agarra y levanta el palito, fuentes integradas (funciona sin conexión) y nada de texto árabe con el juego en inglés.'], ['2.9.0', 'Tres nuevas canciones animadas para los niveles (electro, dabke con darbuka y un breakbeat luminoso), repartidas por los niveles y algo más rápidas al avanzar.'], ['2.8.1', 'Toques más justos junto a señuelos y mascotas, Pausa funciona con dos dedos, el primer jefe es más fácil con la ayuda inteligente y la lluvia de oro ya no es un regalo.'], ['2.8.0', 'Toque más justo (ya no pierdes corazones al tocar bien), dificultad más gradual y ritmo más rápido, las plataformas vuelven a la tienda y las pantallas pequeñas se ven bien.'], ['2.7.0', 'Compañeros: elige un gato, cachorro, pato o conejo, ponle nombre y accesorios. Cada uno tiene una habilidad que te ayuda.'], ['2.6.0', 'Cada nivel tiene su propio nombre en neón sobre la columna de la máquina; el acceso al modo desarrollador funciona en todos los móviles.'], ['2.5.0', 'Cada mundo tiene su propio arco y plataforma; gatos, cachorros, patos y conejos pasean bajo los palitos; quitamos los letreros de la ciudad para ver mejor los palitos.'], ['2.4.1', 'Gráficos más nítidos en el móvil, juego más fluido sin tirones y una sola mano al tocar con varios dedos.'], ['2.4.0', 'Perfil de jugador con XP, niveles, títulos y ruta de premios gratis; álbum de pegatinas; nuevas mecánicas (bicolores, viento, palitos que suben); ayuda inteligente; evento de faroles de Ramadán y regalo de Eid; música que crece con el combo y animaciones más suaves.'], ['2.3.0', 'Día es ahora el tema por defecto; nuevo historial con copias automáticas, restauración y registro de progreso.'], ['2.2.0', 'Intro al primer inicio, mapa de niveles con camino sinuoso, 6 temas (Atardecer por defecto), retos a amigos por enlace, rivales bot identificados y 5 idiomas nuevos.'], ['2.1.0', 'Toque preciso con un guante que agarra, atrapadas rápidas, pausa de impacto, drones con poderes, el gato callejero, jefes robot con sorpresas, niveles de supervivencia / lluvia dorada / apagón, misiones diarias, accesorios para Bebo, contador de FPS.'], ['2.0.0', 'Reconstrucción completa: menú principal, 4 modos de juego, tienda, 26 logros, estadísticas, ranking local, ajustes completos, música generada para cada mundo, Bebo la mascota, ciudad arcade animada, tutorial interactivo, PWA.'], ['1.0.0', 'Primera versión: 150 niveles, mapa y estrellas, combo.']],
     gift: 'Premio', mins: '{0} min', hours: '{0} h {1} min',
-    pw_heart: '+1 ❤️', pw_slow: '¡Cámara lenta!', pw_magnet: '¡Imán!', pw_x2: '¡Puntos dobles!', quick: '¡Rápido!', catSave: '¡El gato lo salvó! 🐾', enraged: '¡El jefe está furioso! 😡',
+    pw_spring: '¡Resortes!', pw_heart: '+1 ❤️', pw_slow: '¡Cámara lenta!', pw_magnet: '¡Imán!', pw_x2: '¡Puntos dobles!', quick: '¡Rápido!', catSave: '¡El gato lo salvó! 🐾', enraged: '¡El jefe está furioso! 😡',
     bossName: 'Jefe de {0}', hudSurvive: 'Sobrevive · {0}s', survivedN: 'Sobreviviste {0} de {1} s',
     tw_rapid: '⚡ Ráfaga: cada pocos segundos el jefe lanza 3 palitos seguidos.', tw_fake: '😜 Engaños: algunos palitos tiemblan pero nunca caen. ¡Mantén la calma!', tw_blackout: '🌑 Apagón: las luces se cortan un momento. Fíjate en el cartel del objetivo.', tw_swap: '🔄 Cambios rápidos: el color objetivo cambia más seguido.', tw_enrage: '😡 Furia: a media vida el jefe acelera.',
+    in_spring: 'Resortes saltarines', in_springD: 'De vez en cuando un dron trae resortes. ¡Tócalo! Durante 10 s, los palitos que necesitas rebotan en vez de tocar el suelo: una segunda oportunidad para atraparlos.',
     in_drone: 'Drones y poderes', in_droneD: 'De vez en cuando pasa un dron con un poder: un corazón, cámara lenta, un imán o puntos dobles. ¡Tócalo para agarrarlo!',
     in_cat: 'El gato callejero', in_catD: 'Un gato pasea por la plataforma. Si un palito objetivo cae sobre él, lo devuelve hacia arriba una vez por nivel, y un palito dorado sobre él da monedas. Acarícialo… ¡ronronea! 😺',
     in_survive: 'Nivel de supervivencia ⏳', in_surviveD: 'Sin meta de atrapadas: solo sobrevive hasta que acabe el tiempo sin perder todos tus corazones.',
@@ -1251,11 +1260,12 @@ STR.pt = {
     petLock: 'Desbloqueia no nível {0}', petPick: 'Escolher', petOn: 'Com você ✓', petName: 'Nome', petAcc: 'Acessórios', petSave: 'Quac! De novo!',
     petCalm: 'Calma…', it_pet_none: 'Nenhum', it_pet_bow: 'Laço', it_pet_collar: 'Coleira', it_pet_party: 'Chapéu de festa', it_pet_crown: 'Coroa',
     rotate: 'Vire o celular na vertical para jogar',
-    clog: [['2.10.0', 'Uma mão realista que agarra e levanta o bastão, fontes embutidas (funciona offline) e nenhum texto em árabe com o jogo em inglês.'], ['2.9.0', 'Três novas músicas animadas para os níveis (eletrônica, dabke com darbuka e um breakbeat brilhante), distribuídas pelos níveis e um pouco mais rápidas conforme você avança.'], ['2.8.1', 'Toques mais justos perto de iscas e bichinhos, Pausa funciona com dois dedos, o primeiro chefe fica mais fácil com a ajuda inteligente e a chuva de ouro não é mais de graça.'], ['2.8.0', 'Toque mais justo (sem perder corações ao tocar certo), dificuldade mais gradual e ritmo mais rápido, as plataformas voltaram à loja e as telas pequenas ficam certas.'], ['2.7.0', 'Companheiros: escolha um gato, filhote, pato ou coelho, dê um nome e acessórios. Cada um tem uma habilidade que ajuda você.'], ['2.6.0', 'Cada nível tem seu próprio nome brilhando em neon na coluna da máquina; o acesso ao modo desenvolvedor funciona em todos os celulares.'], ['2.5.0', 'Cada mundo tem seu próprio arco e plataforma; gatos, filhotes, patos e coelhos passeiam sob os bastões; as placas da cidade saíram para os bastões aparecerem melhor.'], ['2.4.1', 'Gráficos mais nítidos no celular, jogo mais fluido sem travadas e uma só mão ao tocar com vários dedos.'], ['2.4.0', 'Perfil de jogador com XP, níveis, títulos e trilha de prêmios grátis; álbum de figurinhas; novas mecânicas (bicolores, vento, bastões que sobem); ajuda inteligente; evento das lanternas do Ramadã e presente do Eid; música que cresce com o combo e animações mais suaves.'], ['2.3.0', 'Dia agora é o tema padrão; novo histórico com backups automáticos, restauração e registro de progresso.'], ['2.2.0', 'Intro na primeira abertura, mapa de fases com caminho sinuoso, 6 temas (Pôr do sol por padrão), desafios entre amigos por link, rivais bot identificados e 5 novos idiomas.'], ['2.1.0', 'Toque preciso com luva que agarra, capturas rápidas, hit-stop, drones com poderes, o gato de rua, robôs chefões com surpresas, níveis de sobrevivência / chuva dourada / luzes apagadas, missões diárias, acessórios do Bebo, contador de FPS.'], ['2.0.0', 'Reconstrução completa: menu principal, 4 modos de jogo, loja, 26 conquistas, estatísticas, ranking local, ajustes completos, música gerada para cada mundo, o mascote Bebo, cidade arcade animada, tutorial interativo, PWA.'], ['1.0.0', 'Primeira versão: 150 níveis, mapa e estrelas, combo.']],
+    clog: [['2.11.0', 'Uma mão animada na tela inicial, palitos de vida no lugar dos corações, um arremesso de comemoração com o palito da vitória (2+ estrelas), o poder das molas desde o nível 3 e o cartão de avaliação do Google Play.'], ['2.10.0', 'Uma mão realista que agarra e levanta o bastão, fontes embutidas (funciona offline) e nenhum texto em árabe com o jogo em inglês.'], ['2.9.0', 'Três novas músicas animadas para os níveis (eletrônica, dabke com darbuka e um breakbeat brilhante), distribuídas pelos níveis e um pouco mais rápidas conforme você avança.'], ['2.8.1', 'Toques mais justos perto de iscas e bichinhos, Pausa funciona com dois dedos, o primeiro chefe fica mais fácil com a ajuda inteligente e a chuva de ouro não é mais de graça.'], ['2.8.0', 'Toque mais justo (sem perder corações ao tocar certo), dificuldade mais gradual e ritmo mais rápido, as plataformas voltaram à loja e as telas pequenas ficam certas.'], ['2.7.0', 'Companheiros: escolha um gato, filhote, pato ou coelho, dê um nome e acessórios. Cada um tem uma habilidade que ajuda você.'], ['2.6.0', 'Cada nível tem seu próprio nome brilhando em neon na coluna da máquina; o acesso ao modo desenvolvedor funciona em todos os celulares.'], ['2.5.0', 'Cada mundo tem seu próprio arco e plataforma; gatos, filhotes, patos e coelhos passeiam sob os bastões; as placas da cidade saíram para os bastões aparecerem melhor.'], ['2.4.1', 'Gráficos mais nítidos no celular, jogo mais fluido sem travadas e uma só mão ao tocar com vários dedos.'], ['2.4.0', 'Perfil de jogador com XP, níveis, títulos e trilha de prêmios grátis; álbum de figurinhas; novas mecânicas (bicolores, vento, bastões que sobem); ajuda inteligente; evento das lanternas do Ramadã e presente do Eid; música que cresce com o combo e animações mais suaves.'], ['2.3.0', 'Dia agora é o tema padrão; novo histórico com backups automáticos, restauração e registro de progresso.'], ['2.2.0', 'Intro na primeira abertura, mapa de fases com caminho sinuoso, 6 temas (Pôr do sol por padrão), desafios entre amigos por link, rivais bot identificados e 5 novos idiomas.'], ['2.1.0', 'Toque preciso com luva que agarra, capturas rápidas, hit-stop, drones com poderes, o gato de rua, robôs chefões com surpresas, níveis de sobrevivência / chuva dourada / luzes apagadas, missões diárias, acessórios do Bebo, contador de FPS.'], ['2.0.0', 'Reconstrução completa: menu principal, 4 modos de jogo, loja, 26 conquistas, estatísticas, ranking local, ajustes completos, música gerada para cada mundo, o mascote Bebo, cidade arcade animada, tutorial interativo, PWA.'], ['1.0.0', 'Primeira versão: 150 níveis, mapa e estrelas, combo.']],
     gift: 'Prêmio', mins: '{0}min', hours: '{0}h {1}min',
-    pw_heart: '+1 ❤️', pw_slow: 'Câmera lenta!', pw_magnet: 'Ímã!', pw_x2: 'Pontos em dobro!', quick: 'Rápido!', catSave: 'O gato salvou! 🐾', enraged: 'O chefão está furioso! 😡',
+    pw_spring: 'Molas!', pw_heart: '+1 ❤️', pw_slow: 'Câmera lenta!', pw_magnet: 'Ímã!', pw_x2: 'Pontos em dobro!', quick: 'Rápido!', catSave: 'O gato salvou! 🐾', enraged: 'O chefão está furioso! 😡',
     bossName: 'Chefão · {0}', hudSurvive: 'Sobreviva · {0}s', survivedN: 'Sobreviveu {0} de {1} s',
     tw_rapid: '⚡ Rajada: a cada poucos segundos o chefão joga 3 bastões seguidos.', tw_fake: '😜 Fintas: alguns bastões tremem mas nunca caem — calma!', tw_blackout: '🌑 Apagão: as luzes se apagam por um instante — olhe a faixa do alvo.', tw_swap: '🔄 Trocas rápidas: a cor do alvo muda com mais frequência.', tw_enrage: '😡 Fúria: com metade da vida, o chefão acelera.',
+    in_spring: 'Molas saltitantes', in_springD: 'De vez em quando um drone traz molas. Toque nele! Por 10 s, os palitos que você precisa quicam de volta em vez de cair no chão: uma segunda chance de pegá-los.',
     in_drone: 'Drones e poderes', in_droneD: 'De vez em quando passa um drone carregando um poder: um coração, câmera lenta, um ímã ou pontos em dobro. Toque nele para pegar!',
     in_cat: 'O gato de rua', in_catD: 'Um gato passeia pela plataforma. Se um bastão-alvo cair nele, ele joga o bastão de volta pra cima uma vez por nível, e um bastão dourado nele dá moedas. Faça carinho… ele ronrona 😺',
     in_survive: 'Nível de sobrevivência ⏳', in_surviveD: 'Sem meta de capturas — só sobreviva até o tempo acabar sem perder todos os corações.',
@@ -1360,11 +1370,12 @@ STR.tr = {
     petLock: 'Seviye {0}’da açılır', petPick: 'Seç', petOn: 'Seninle ✓', petName: 'İsim', petAcc: 'Aksesuarlar', petSave: 'Vak! Bir daha!', petCalm: 'Sakin…',
     it_pet_none: 'Yok', it_pet_bow: 'Fiyonk', it_pet_collar: 'Tasma', it_pet_party: 'Parti şapkası', it_pet_crown: 'Taç',
     rotate: 'Oynamak için telefonunu dik tut',
-    clog: [['2.10.0', 'Çubuğu tutup kaldıran gerçekçi bir el, gömülü yazı tipleri (tamamen çevrimdışı çalışır) ve oyun İngilizceyken hiç Arapça metin yok.'], ['2.9.0', 'Bölümler için üç yeni hareketli şarkı (elektro, darbukalı dabke ve parlak bir breakbeat); bölümlere dağıtıldı ve ilerledikçe biraz hızlanıyor.'], ['2.8.1', 'Tuzak çubuklar ve hayvanların yanında daha adil dokunuş, Duraklat iki parmakla çalışıyor, ilk boss akıllı yardımla daha kolay, altın yağmuru artık bedava değil.'], ['2.8.0', 'Daha adil dokunuş (doğru dokunuşta kalp kaybı yok), daha dengeli zorluk ve daha hızlı tempo, platformlar mağazaya döndü, küçük ekranlar düzgün görünüyor.'], ['2.7.0', 'Hayvan dostlar: kedi, köpek yavrusu, ördek ya da tavşan seç, ad ver ve süsle. Her birinin sana yardım eden bir yeteneği var.'], ['2.6.0', 'Her seviyenin makine sütununda neonla parlayan kendi adı var; geliştirici modu dokunuşu artık her telefonda çalışıyor.'], ['2.5.0', 'Her dünyanın kendi kemeri ve platformu var; kediler, köpek yavruları, ördekler ve tavşanlar çubukların altında dolaşıyor; çubuklar daha iyi görünsün diye şehir tabelaları kaldırıldı.'], ['2.4.1', 'Telefonda daha net grafikler, takılmadan daha akıcı oyun ve birden fazla parmakla dokunduğunda tek el.'], ['2.4.0', 'XP, seviyeler, unvanlar ve ücretsiz ödül yolu olan oyuncu profili; çıkartma albümü; yeni mekanikler (iki renkli, rüzgâr, yükselen çubuklar); akıllı yardım; Ramazan fener etkinliği ve bayram hediyesi; komboyla yükselen müzik ve daha akıcı animasyonlar.'], ['2.3.0', 'Varsayılan tema artık Gündüz; otomatik yedekler, geri yükleme ve ilerleme günlüğü içeren yeni kayıt geçmişi.'], ['2.2.0', 'İlk açılış tanıtımı, kıvrımlı yol şeklinde bölüm haritası, 6 tema (varsayılan Gün batımı), arkadaşlara bağlantıyla meydan okuma, etiketli bot rakipler ve 5 yeni dil.'], ['2.1.0', 'Kapma eldiveniyle hassas dokunma, hızlı yakalamalar, vuruş duraksaması, güç taşıyan dronlar, sokak kedisi, sürprizli boss robotlar, hayatta kalma / altın yağmuru / karanlık seviyeler, günlük görevler, Bebo aksesuarları, FPS sayacı.'], ['2.0.0', 'Baştan yeniden yapıldı: ana menü, 4 oyun modu, mağaza, 26 başarım, istatistikler, yerel sıralama, tam ayarlar, her dünyaya özel üretilen müzik, maskot Bebo, hareketli atari şehri, etkileşimli eğitim, PWA.'], ['1.0.0', 'İlk sürüm: 150 seviye, harita ve yıldızlar, kombo.']],
+    clog: [['2.11.0', 'Başlık ekranında hareketli bir el, kalpler yerine can çubukları, kazandıran çubukla kutlama atışı (2+ yıldız), 3. seviyeden itibaren yay gücü ve Google Play puanlama kartı.'], ['2.10.0', 'Çubuğu tutup kaldıran gerçekçi bir el, gömülü yazı tipleri (tamamen çevrimdışı çalışır) ve oyun İngilizceyken hiç Arapça metin yok.'], ['2.9.0', 'Bölümler için üç yeni hareketli şarkı (elektro, darbukalı dabke ve parlak bir breakbeat); bölümlere dağıtıldı ve ilerledikçe biraz hızlanıyor.'], ['2.8.1', 'Tuzak çubuklar ve hayvanların yanında daha adil dokunuş, Duraklat iki parmakla çalışıyor, ilk boss akıllı yardımla daha kolay, altın yağmuru artık bedava değil.'], ['2.8.0', 'Daha adil dokunuş (doğru dokunuşta kalp kaybı yok), daha dengeli zorluk ve daha hızlı tempo, platformlar mağazaya döndü, küçük ekranlar düzgün görünüyor.'], ['2.7.0', 'Hayvan dostlar: kedi, köpek yavrusu, ördek ya da tavşan seç, ad ver ve süsle. Her birinin sana yardım eden bir yeteneği var.'], ['2.6.0', 'Her seviyenin makine sütununda neonla parlayan kendi adı var; geliştirici modu dokunuşu artık her telefonda çalışıyor.'], ['2.5.0', 'Her dünyanın kendi kemeri ve platformu var; kediler, köpek yavruları, ördekler ve tavşanlar çubukların altında dolaşıyor; çubuklar daha iyi görünsün diye şehir tabelaları kaldırıldı.'], ['2.4.1', 'Telefonda daha net grafikler, takılmadan daha akıcı oyun ve birden fazla parmakla dokunduğunda tek el.'], ['2.4.0', 'XP, seviyeler, unvanlar ve ücretsiz ödül yolu olan oyuncu profili; çıkartma albümü; yeni mekanikler (iki renkli, rüzgâr, yükselen çubuklar); akıllı yardım; Ramazan fener etkinliği ve bayram hediyesi; komboyla yükselen müzik ve daha akıcı animasyonlar.'], ['2.3.0', 'Varsayılan tema artık Gündüz; otomatik yedekler, geri yükleme ve ilerleme günlüğü içeren yeni kayıt geçmişi.'], ['2.2.0', 'İlk açılış tanıtımı, kıvrımlı yol şeklinde bölüm haritası, 6 tema (varsayılan Gün batımı), arkadaşlara bağlantıyla meydan okuma, etiketli bot rakipler ve 5 yeni dil.'], ['2.1.0', 'Kapma eldiveniyle hassas dokunma, hızlı yakalamalar, vuruş duraksaması, güç taşıyan dronlar, sokak kedisi, sürprizli boss robotlar, hayatta kalma / altın yağmuru / karanlık seviyeler, günlük görevler, Bebo aksesuarları, FPS sayacı.'], ['2.0.0', 'Baştan yeniden yapıldı: ana menü, 4 oyun modu, mağaza, 26 başarım, istatistikler, yerel sıralama, tam ayarlar, her dünyaya özel üretilen müzik, maskot Bebo, hareketli atari şehri, etkileşimli eğitim, PWA.'], ['1.0.0', 'İlk sürüm: 150 seviye, harita ve yıldızlar, kombo.']],
     gift: 'Ödül', mins: '{0}dk', hours: '{0}sa {1}dk',
-    pw_heart: '+1 ❤️', pw_slow: 'Ağır çekim!', pw_magnet: 'Mıknatıs!', pw_x2: 'Çift puan!', quick: 'Hızlı!', catSave: 'Kedi kurtardı! 🐾', enraged: 'Boss çok öfkeli! 😡',
+    pw_spring: 'Yaylar!', pw_heart: '+1 ❤️', pw_slow: 'Ağır çekim!', pw_magnet: 'Mıknatıs!', pw_x2: 'Çift puan!', quick: 'Hızlı!', catSave: 'Kedi kurtardı! 🐾', enraged: 'Boss çok öfkeli! 😡',
     bossName: '{0} Bossu', hudSurvive: 'Hayatta kal · {0}sn', survivedN: 'Dayandın: {0}/{1} sn',
     tw_rapid: '⚡ Seri atış: boss birkaç saniyede bir art arda 3 çubuk atar.', tw_fake: '😜 Çalım: bazı çubuklar titrer ama hiç düşmez — sakin kal!', tw_blackout: '🌑 Karartma: ışıklar bir anlığına söner — hedef yazısını izle.', tw_swap: '🔄 Hızlı değişim: hedef renk daha sık değişir.', tw_enrage: '😡 Öfke: canı yarıya inince boss hızlanır.',
+    in_spring: 'Zıplayan yaylar', in_springD: 'Arada bir dron yay getirir. Ona dokun! 10 saniye boyunca istediğin çubuklar yere düşmek yerine geri zıplar: onları yakalamak için ikinci bir şans.',
     in_drone: 'Dronlar ve güçler', in_droneD: 'Arada bir güç taşıyan bir dron geçer: kalp, ağır çekim, mıknatıs veya çift puan. Kapmak için ona dokun!',
     in_cat: 'Sokak kedisi', in_catD: 'Bir kedi platformda geziniyor. Hedef çubuk üstüne düşerse seviye başına bir kez onu geri yukarı sektirir; üstüne düşen altın çubuk ise jeton verir. Onu sev… mırlar 😺',
     in_survive: 'Hayatta kalma seviyesi ⏳', in_surviveD: 'Yakalama hedefi yok — tüm kalplerini kaybetmeden süre bitene kadar dayan.',
@@ -1468,11 +1479,12 @@ STR.id = {
     petLock: 'Terbuka di level {0}', petPick: 'Pilih', petOn: 'Bersamamu ✓', petName: 'Nama', petAcc: 'Aksesori', petSave: 'Kwek! Lagi!', petCalm: 'Tenang…',
     it_pet_none: 'Tidak ada', it_pet_bow: 'Pita', it_pet_collar: 'Kalung', it_pet_party: 'Topi pesta', it_pet_crown: 'Mahkota',
     rotate: 'Putar ponsel ke posisi tegak untuk bermain',
-    clog: [['2.10.0', 'Tangan realistis yang menggenggam dan mengangkat tongkat, font bawaan (bisa offline), dan tidak ada teks Arab saat game berbahasa Inggris.'], ['2.9.0', 'Tiga lagu baru yang bersemangat untuk level (elektro, dabke dengan darbuka, dan breakbeat ceria), tersebar di semua level dan sedikit lebih cepat seiring kemajuan.'], ['2.8.1', 'Ketukan lebih adil di dekat tongkat pengecoh dan hewan, Jeda berfungsi dengan dua jari, bos pertama lebih mudah dengan bantuan pintar, dan hujan emas tidak lagi gratis.'], ['2.8.0', 'Sentuhan lebih adil (tidak kehilangan nyawa saat mengetuk dengan benar), kesulitan lebih bertahap dan tempo lebih cepat, platform kembali ke toko, dan layar kecil tampil rapi.'], ['2.7.0', 'Teman hewan: pilih kucing, anak anjing, bebek, atau kelinci, beri nama dan aksesori. Masing-masing punya kemampuan yang membantumu.'], ['2.6.0', 'Setiap level punya nama sendiri yang menyala neon di tiang mesin; ketukan mode pengembang kini berfungsi di semua ponsel.'], ['2.5.0', 'Setiap dunia punya lengkungan dan platform sendiri; kucing, anak anjing, bebek, dan kelinci berjalan-jalan di bawah tongkat; papan tulisan kota dihapus agar tongkat lebih terlihat.'], ['2.4.1', 'Grafis lebih tajam di ponsel, permainan lebih mulus tanpa patah-patah, dan satu tangan saja saat menyentuh dengan beberapa jari.'], ['2.4.0', 'Profil pemain dengan XP, level, gelar, dan jalur hadiah gratis; album stiker; mekanik baru (dua warna, angin, tongkat naik); bantuan pintar; event lentera Ramadan dan hadiah Hari Raya; musik yang makin seru seiring kombo dan animasi lebih halus.'], ['2.3.0', 'Tema Siang kini jadi bawaan; riwayat simpan baru dengan cadangan otomatis, pemulihan, dan catatan progres.'], ['2.2.0', 'Intro saat pertama dibuka, peta level berupa jalan berliku, 6 tema (Senja sebagai bawaan), tantangan teman lewat tautan, rival bot berlabel, dan 5 bahasa baru.'], ['2.1.0', 'Sentuhan presisi dengan sarung tangan penangkap, tangkapan cepat, hit-stop, drone power-up, kucing jalanan, robot bos dengan kejutan, level bertahan / hujan emas / lampu padam, misi harian, aksesori Bebo, penghitung FPS.'], ['2.0.0', 'Dibangun ulang total: menu utama, 4 mode permainan, toko, 26 pencapaian, statistik, papan skor lokal, pengaturan lengkap, musik khusus tiap dunia, maskot Bebo, kota arcade beranimasi, tutorial interaktif, PWA.'], ['1.0.0', 'Versi pertama: 150 level, peta dan bintang, kombo.']],
+    clog: [['2.11.0', 'Tangan beranimasi di layar judul, tongkat nyawa sebagai pengganti hati, lemparan perayaan dengan tongkat kemenangan (2+ bintang), kekuatan pegas sejak level 3, dan kartu rating Google Play.'], ['2.10.0', 'Tangan realistis yang menggenggam dan mengangkat tongkat, font bawaan (bisa offline), dan tidak ada teks Arab saat game berbahasa Inggris.'], ['2.9.0', 'Tiga lagu baru yang bersemangat untuk level (elektro, dabke dengan darbuka, dan breakbeat ceria), tersebar di semua level dan sedikit lebih cepat seiring kemajuan.'], ['2.8.1', 'Ketukan lebih adil di dekat tongkat pengecoh dan hewan, Jeda berfungsi dengan dua jari, bos pertama lebih mudah dengan bantuan pintar, dan hujan emas tidak lagi gratis.'], ['2.8.0', 'Sentuhan lebih adil (tidak kehilangan nyawa saat mengetuk dengan benar), kesulitan lebih bertahap dan tempo lebih cepat, platform kembali ke toko, dan layar kecil tampil rapi.'], ['2.7.0', 'Teman hewan: pilih kucing, anak anjing, bebek, atau kelinci, beri nama dan aksesori. Masing-masing punya kemampuan yang membantumu.'], ['2.6.0', 'Setiap level punya nama sendiri yang menyala neon di tiang mesin; ketukan mode pengembang kini berfungsi di semua ponsel.'], ['2.5.0', 'Setiap dunia punya lengkungan dan platform sendiri; kucing, anak anjing, bebek, dan kelinci berjalan-jalan di bawah tongkat; papan tulisan kota dihapus agar tongkat lebih terlihat.'], ['2.4.1', 'Grafis lebih tajam di ponsel, permainan lebih mulus tanpa patah-patah, dan satu tangan saja saat menyentuh dengan beberapa jari.'], ['2.4.0', 'Profil pemain dengan XP, level, gelar, dan jalur hadiah gratis; album stiker; mekanik baru (dua warna, angin, tongkat naik); bantuan pintar; event lentera Ramadan dan hadiah Hari Raya; musik yang makin seru seiring kombo dan animasi lebih halus.'], ['2.3.0', 'Tema Siang kini jadi bawaan; riwayat simpan baru dengan cadangan otomatis, pemulihan, dan catatan progres.'], ['2.2.0', 'Intro saat pertama dibuka, peta level berupa jalan berliku, 6 tema (Senja sebagai bawaan), tantangan teman lewat tautan, rival bot berlabel, dan 5 bahasa baru.'], ['2.1.0', 'Sentuhan presisi dengan sarung tangan penangkap, tangkapan cepat, hit-stop, drone power-up, kucing jalanan, robot bos dengan kejutan, level bertahan / hujan emas / lampu padam, misi harian, aksesori Bebo, penghitung FPS.'], ['2.0.0', 'Dibangun ulang total: menu utama, 4 mode permainan, toko, 26 pencapaian, statistik, papan skor lokal, pengaturan lengkap, musik khusus tiap dunia, maskot Bebo, kota arcade beranimasi, tutorial interaktif, PWA.'], ['1.0.0', 'Versi pertama: 150 level, peta dan bintang, kombo.']],
     gift: 'Hadiah', mins: '{0} mnt', hours: '{0} jam {1} mnt',
-    pw_heart: '+1 ❤️', pw_slow: 'Gerak lambat!', pw_magnet: 'Magnet!', pw_x2: 'Poin ganda!', quick: 'Cepat!', catSave: 'Kucingnya menyelamatkan! 🐾', enraged: 'Bosnya marah besar! 😡',
+    pw_spring: 'Pegas!', pw_heart: '+1 ❤️', pw_slow: 'Gerak lambat!', pw_magnet: 'Magnet!', pw_x2: 'Poin ganda!', quick: 'Cepat!', catSave: 'Kucingnya menyelamatkan! 🐾', enraged: 'Bosnya marah besar! 😡',
     bossName: 'Bos {0}', hudSurvive: 'Bertahan · {0} dtk', survivedN: 'Bertahan {0} dari {1} dtk',
     tw_rapid: '⚡ Tembakan beruntun: setiap beberapa detik bos melempar 3 tongkat berturut-turut.', tw_fake: '😜 Tipuan: beberapa tongkat bergetar tapi tidak jatuh — tetap tenang!', tw_blackout: '🌑 Padam: lampu mati sebentar — perhatikan banner target.', tw_swap: '🔄 Ganti cepat: warna target berubah lebih sering.', tw_enrage: '😡 Mengamuk: saat darahnya tinggal separuh, bos jadi lebih cepat.',
+    in_spring: 'Pegas memantul', in_springD: 'Sesekali drone membawa pegas. Ketuk! Selama 10 detik, tongkat yang kamu butuhkan memantul naik alih-alih jatuh ke lantai: kesempatan kedua untuk menangkapnya.',
     in_drone: 'Drone & kekuatan', in_droneD: 'Sesekali drone terbang lewat membawa kekuatan: nyawa, gerak lambat, magnet, atau poin ganda. Ketuk untuk mengambilnya!',
     in_cat: 'Kucing jalanan', in_catD: 'Seekor kucing berjalan santai melintasi platform. Kalau tongkat target jatuh di atasnya, dia menepisnya kembali ke atas sekali per level, dan tongkat emas yang jatuh di atasnya memberi koin. Elus dia… dia mendengkur 😺',
     in_survive: 'Level bertahan ⏳', in_surviveD: 'Tanpa target tangkapan — cukup bertahan sampai waktu habis tanpa kehilangan semua nyawa.',
@@ -1541,6 +1553,7 @@ function defaultSave() {
     settings: { music: .6, sfx: .85, muted: false, haptics: true, lang: detectLang(), quality: 'auto', autoQ: 'high', diff: 'normal', cb: false, reduce: reduce, big: false, left: false, fps: false, theme: CFG.defaultTheme, themePicked: false, assist: true, perfV: 1 },
     shop: { owned: { stick: ['classic'], platform: ['world', 'classic'], arch: ['world', 'classic'], bg: ['classic'], pet: ['none'], bebo: ['none'] }, eq: { stick: 'classic', platform: 'world', arch: 'world', bg: 'classic', pet: 'none', bebo: 'none' } },
     pet: { id: 'cat', name: '' },
+    review: { n: 0, next: 0, at: 0 },
     daily: { last: '', streak: 0, best: 0 },
     dailyCh: { date: '', done: false, best: 0 },
     ach: {},
@@ -2512,6 +2525,25 @@ const Mascot = {
   },
 };
 /** Draw Bebo with feet at (x,y), scale s. mood: idle|wave|happy|cheer|sad|scared. */
+/** Title screens: a neon stick drops, a hand glides in, grips it and lifts it away (loops, colour changes each time). */
+function drawHandDemo(g, w, h, t) {
+  const k = Math.min(w / 120, h / 112), P = 2.1, ph = (t % P) / P, col = COLORS[COLOR_KEYS[Math.floor(t / P) % 3]].hex;
+  const sw = 10 * k, len = 58 * k, cx = w * .42, gy = h * .2, G = .42, f = save.settings.left ? -1 : 1, hu = 1.15 * k, gyy = gy + len * .52;
+  const stick = (x, y) => { if (Qcur.glow) { g.save(); g.shadowColor = col; g.shadowBlur = 12 * k; g.fillStyle = col; rr(g, x, y, sw, len, sw / 2); g.fill(); g.restore(); } paintStick(g, x, y, sw, len, col, KIND.N, save.shop.eq.stick, k); };
+  if (ph < G) {
+    const a = ph / G, e = 1 - Math.pow(1 - clamp((ph - .06) / (G - .06), 0, 1), 3);
+    stick(cx - sw / 2, lerp(-len - 6 * k, gy, a * a));
+    drawHand(g, lerp(cx + f * w * .7, cx, e), lerp(h + 34 * k, gyy, e), hu, 0, f, col);
+    return;
+  }
+  const c = clamp((ph - G) / .05, 0, 1), l = Math.pow(clamp((ph - G - .1) / .34, 0, 1), 1.6), al = ph > .8 ? Math.max(0, 1 - (ph - .8) / .14) : 1;
+  const rg = (ph - G) / .2;
+  if (rg < 1) { g.globalAlpha = 1 - rg; g.strokeStyle = col; g.lineWidth = 3 * k; g.beginPath(); g.arc(cx, gyy, (8 + rg * 30) * k, 0, 7); g.stroke();
+    g.fillStyle = '#ffffff'; for (let i = 0; i < 6; i++) { const an = i * 1.047 + .3, r = (12 + rg * 26) * k; g.beginPath(); g.arc(cx + Math.cos(an) * r, gyy + Math.sin(an) * r, 1.6 * k, 0, 7); g.fill(); } }
+  g.globalAlpha = al; g.save(); g.translate(cx + f * l * 24 * k, gyy - l * 66 * k); g.rotate(f * l * .3);
+  handBack(g, 0, 0, hu, c, f, col); stick(-sw / 2, gy - gyy); handFront(g, 0, 0, hu, c, f);
+  g.restore(); g.globalAlpha = 1;
+}
 function drawMascot(g, x, y, s, mood, t, tc, blink, acc, look) {
   if (acc === undefined) acc = save.shop.eq.bebo;
   const lk = (look || 0) * 2.6;
@@ -2704,6 +2736,7 @@ const Render = {
     if (dark > 0) { g.globalAlpha = dark; g.fillStyle = '#02030a'; g.fillRect(-20, -20, V.W + 40, V.H + 40); g.globalAlpha = 1; }
     Boss.draw(g);
     Pets.draw(g);                                 // behind the sticks, so they never hide one
+    Springs.draw(g);
     drawSticks(g);
     drawWind(g);
     Cat.draw(g);
@@ -2787,7 +2820,7 @@ const Game = {
   mode: 'none', n: 1, startN: 1, w: 0, L: null, rng: Math.random, sticks: [], auto: true,
   lives: 0, maxLives: 0, caught: 0, hits: 0, score: 0, combo: 0, maxCombo: 0, target: 'b', drops: 0, spawnT: 0, since: 0, pendingSwitch: false,
   slowT: 0, shake: 0, flash: 0, ending: 0, endWin: false, real: 0, gt: 0, lost: 0, wrong: 0, missed: 0, goldN: 0, bombs: 0, gMul: 1, lcd: '0', attT: 0,
-  stopT: 0, cflash: 0, magnetT: 0, x2T: 0, powSlowT: 0, hudT: 0, quickN: 0, powerN: 0, catSaves: 0, pets: 0, bonusCoins: 0, colorHits: { b: 0, g: 0, r: 0 },
+  stopT: 0, cflash: 0, magnetT: 0, x2T: 0, springT: 0, powSlowT: 0, hudT: 0, quickN: 0, powerN: 0, catSaves: 0, pets: 0, bonusCoins: 0, colorHits: { b: 0, g: 0, r: 0 },
   init() {
     const mk = (i, floor) => ({ i, x: 0, y: 0, y0: 0, vy: 0, st: ST.HANG, t: 0, c: 'b', c2: '', k: KIND.N, dc: DECOR[i % DECOR.length], flash: 0, shiftY: 0, fake: false, bounced: false, up: false, floor, lane: 0 });
     for (let i = 0; i < CFG.lanes; i++) this.sticks.push(mk(i, false));
@@ -2817,7 +2850,7 @@ const Game = {
     this.caught = this.hits = this.score = this.combo = this.maxCombo = this.drops = this.since = 0;
     this.lost = this.wrong = this.missed = this.goldN = this.bombs = 0;
     this.real = this.gt = this.slowT = this.shake = this.flash = this.ending = 0;
-    this.stopT = this.cflash = this.magnetT = this.x2T = this.powSlowT = this.hudT = 0;
+    this.stopT = this.cflash = this.magnetT = this.x2T = this.springT = this.powSlowT = this.hudT = 0;
     this.quickN = this.powerN = this.catSaves = this.pets = this.bonusCoins = 0; this.colorHits = { b: 0, g: 0, r: 0 };
     this.endWin = false; this.pendingSwitch = false;
     this.wind = this.windTo = 0; this.windT = 2; this.lanterns = 0; Music.intensity = 0;
@@ -2826,17 +2859,17 @@ const Game = {
     this.spawnT = .9;
     for (const s of this.sticks) this.resetStick(s);
     FX.clear(); Glove.clear(); Mascot.set('idle', .1);
-    Drone.reset(); Cat.reset(); Pets.reset(); Boss.setup();
+    Drone.reset(); Springs.reset(); Cat.reset(); Pets.reset(); Boss.setup();
     HUD.full();
   },
   /** Menu "attract mode": sticks drop on their own behind the menus. */
   toAttract() {
     if (this.mode === 'attract') return;
     this.mode = 'attract'; this.L = plainCfg(12); this.L.goal = 0; this.gMul = .9; this.auto = false;
-    this.ending = this.slowT = this.flash = this.shake = this.stopT = this.cflash = this.magnetT = this.x2T = this.powSlowT = 0;
+    this.ending = this.slowT = this.flash = this.shake = this.stopT = this.cflash = this.magnetT = this.x2T = this.springT = this.powSlowT = 0;
     this.pendingSwitch = false; this.rng = Math.random; this.attT = 1; this.target = 'b'; this.wind = 0; Music.intensity = 0;
     for (const s of this.sticks) this.resetStick(s);
-    FX.clear(); Glove.clear(); Drone.reset(); Cat.reset(); Pets.reset(); Boss.on = false; Boss.blackT = 0;
+    FX.clear(); Glove.clear(); Drone.reset(); Springs.reset(); Cat.reset(); Pets.reset(); Boss.on = false; Boss.blackT = 0;
     Render.menuWorld = Math.min(NW - 1, Math.floor((unlockedLevel() - 1) / PER_WORLD));
   },
   attract(dt) {
@@ -2868,6 +2901,8 @@ const Game = {
     if (this.powSlowT > 0) this.powSlowT -= rdt;
     if (this.magnetT > 0) this.magnetT -= rdt;
     if (this.x2T > 0) this.x2T -= rdt;
+    if (this.springT > 0) this.springT -= rdt;
+    Springs.update(rdt);
     if (this.cflash > 0) this.cflash -= rdt;
     if (this.L.wind) {                              // gusts change direction every few seconds
       if ((this.windT -= dt) <= 0) { const W = CFG.wind; this.windT = W.every[0] + Math.random() * (W.every[1] - W.every[0]); this.windTo = (Math.random() < .5 ? -1 : 1) * W.force * V.u * (.6 + Math.random() * .4); }
@@ -3054,6 +3089,7 @@ const Game = {
   },
   land(s) {
     const x = s.x, u = V.u, y = s.up ? arcY(s.x) + 10 * u : V.fy;
+    if (!s.up && !this.ending && Springs.land(s)) return;   // bouncy springs power-up
     if (!s.up && this.mode !== 'attract' && !this.ending && Cat.land(s)) return;   // the cat batted it back up
     if (!s.up && !this.ending && Pets.skillLand(s)) return;   // duck: second chance
     if (!s.up) Pets.land(s.x);
@@ -3087,6 +3123,7 @@ const Game = {
     this.endWin = win;
     if (win) {
       this.ending = this.L.boss ? CFG.slowmo.boss : CFG.slowmo.win;
+      if (this.mode === 'level' && this.lost <= 1 && Glove.toss()) this.ending = Math.max(this.ending, 1.3);   // 2+ stars: celebrate with the winning stick
       Mascot.set('happy', 4); Mascot.say('bWin');
       for (const s of this.sticks) if (s.st === ST.WARN || s.st === ST.FALL) this.pop(s, '#ffffff');
       if (this.L.boss) {
@@ -3096,9 +3133,24 @@ const Game = {
       Music.stop();
     } else { this.ending = CFG.slowmo.lose; Mascot.set('sad', 4); Music.stop(); }
   },
-  complete() { const res = Progress.record(this); SM.go('end', res); },
+  complete() { const res = Progress.record(this); SM.go('end', res); Review.onEnd(res); },
 };
 
+/** Google Play rating card (Android app only): first after a 2+ star win from level 3, then now and then on later levels
+    (every CFG.review.gap levels, days apart, at most max times). Never after a loss or during a run; Play itself also limits how often it shows. */
+const Review = {
+  wait: false, force: false,
+  ok() { return (IN_APP || this.force) && !!window.FSNative && typeof window.FSNative.review === 'function'; },
+  onEnd(r) {
+    const R = CFG.review, s = save.review, n = Game.n;
+    if (!this.ok() || !r || r.test || Game.mode !== 'level' || !r.win || (r.stars || 0) < 2 || s.n >= R.max) return false;
+    if (s.n === 0 ? n < R.first : n < s.next || Date.now() - s.at < R.days * 864e5) return false;
+    s.n++; s.at = Date.now(); s.next = n + R.gap[0] + Math.floor(Math.random() * (R.gap[1] - R.gap[0] + 1)); persist(true);
+    setTimeout(() => { if (SM.state === 'end') this.ask(); else this.wait = true; }, 2600);   // after the stars; if the player already moved on, at the next map visit
+    return true;
+  },
+  ask() { this.wait = false; try { window.FSNative.review(); } catch (e) { /* not available */ } },
+};
 /** Turns a finished run into saved progress + an end-screen result. */
 const Progress = {
   record(G) { return G.test ? this.dry(() => this.apply(G)) : this.apply(G); },
@@ -3315,7 +3367,7 @@ const HUD = {
     const G = Game, e = this.e.hLives;
     if (!G.maxLives) { e.innerHTML = '<span class="inf">∞</span>'; return; }
     let h = '';
-    for (let i = 0; i < G.maxLives; i++) h += ICON.heart.replace('<svg', '<svg class="' + (i >= G.lives ? 'off' : '') + (broke && i === G.lives ? ' brk' : '') + '"');
+    for (let i = 0; i < G.maxLives; i++) h += '<i class="life' + (i >= G.lives ? ' off' : '') + (broke && i === G.lives ? ' brk' : '') + '"></i>';   // life sticks
     e.innerHTML = h; e.setAttribute('aria-label', G.lives + '/' + G.maxLives);
   },
   goal(pulse) {
@@ -3343,6 +3395,7 @@ const HUD = {
     let h = '';
     if (G.magnetT > 0) h += pup('🧲', Drone.COL.magnet, G.magnetT);
     if (G.x2T > 0) h += pup('⁦×2⁩', Drone.COL.x2, G.x2T);
+    if (G.springT > 0) h += pup(SPRING_ICO, Drone.COL.spring, G.springT);
     if (G.powSlowT > 0) h += pup('⏱️', Drone.COL.slow, G.powSlowT);
     if (G.L && G.L.wind && Math.abs(G.wind) > 4 * V.u) h += '<span class="pup" style="--c:#67e8f9">💨<b>' + (G.wind > 0 ? '→' : '←') + '</b></span>';
     if (h !== this.lastP) { this.e.pups.innerHTML = h; this.lastP = h; }
@@ -3412,15 +3465,66 @@ const Glove = {
   P: [],
   init() { this.P = []; for (let i = 0; i < 3; i++) this.P.push({ on: false, x: 0, y: 0, top: 0, t: 0, ml: 1, grip: false, hex: '', kind: 0, sym: '' }); },   // 2 grips + 1 empty hand
   clear() { for (const p of this.P) p.on = false; },
-  grip(x, y, top, hex, kind, sym) { const a = this.P[0], b = this.P[1], p = !a.on ? a : !b.on ? b : a.t < b.t ? a : b; this.P[2].on = false; p.on = true; p.x = x; p.y = y; p.top = top; p.t = p.ml = .42; p.grip = true; p.hex = hex; p.kind = kind; p.sym = sym; },
+  grip(x, y, top, hex, kind, sym) { const a = this.P[0], b = this.P[1], p = !a.on ? a : !b.on ? b : a.t < b.t ? a : b; this.P[2].on = false; p.on = true; p.x = x; p.y = y; p.top = top; p.t = p.ml = .42; p.grip = true; p.hex = hex; p.kind = kind; p.sym = sym; p.toss = 0; this.last = p; },
+  /** Winning catch with 2+ stars: the hand throws the stick up in one of three celebrations (never the same twice in a row). */
+  toss() {
+    const p = this.last; if (!p || !p.on || !p.grip || p.toss) return false;
+    let v = Math.random() * 3 | 0; if (v === this.lastToss) v = (v + 1 + (Math.random() * 2 | 0)) % 3;
+    this.lastToss = v; p.toss = v + 1; p.t = p.ml = 1.25; p.popped = false; p.rel = false; p.trail = []; return true;
+  },
+  lastToss: -1, last: null,
+  /** Pose s seconds into a throw: hand (hx, hy, close, alpha) and stick centre (cx, cy) + angle r. 1 = sky spin, 2 = baton twirl + arc, 3 = rocket. */
+  pose(p, s) {
+    const u = V.u, f = save.settings.left ? -1 : 1, gy = p.y - (p.top + V.len / 2), v = p.toss, R = v === 2 ? .42 : .3;
+    const o = { hx: p.x, hy: p.y, close: clamp(s / .08, 0, 1), ha: 1, cx: 0, cy: 0, r: 0, free: s >= R, T: s - R };
+    const at = (hy, r) => { o.cx = p.x + gy * Math.sin(r); o.cy = hy - gy * Math.cos(r); o.r = r; };
+    if (s < R) {
+      const w = clamp((s - .08) / (R - .08), 0, 1);
+      if (v === 2) at(p.y, f * w * w * Math.PI * 2);                 // baton twirl in the fist
+      else { o.hy = p.y + Math.sin(w * Math.PI / 2) * 12 * u; at(o.hy, -f * w * .3); }   // wind-up dip
+      return o;
+    }
+    const T = o.T, rR = v === 2 ? 0 : -f * .3, hR = v === 2 ? p.y : p.y + 12 * u, dir = p.x < V.sx + V.sw * .45 ? 1 : -1;   // always fly toward the middle of the screen
+    at(hR, rR); const x0 = o.cx, y0 = o.cy;
+    o.hy = hR - clamp(T / .14, 0, 1) * 34 * u; o.close = 1 - clamp(T / .1, 0, 1); o.ha = 1 - clamp((T - .08) / .22, 0, 1);
+    if (v === 1) { o.cx = x0 + dir * 40 * u * T; o.cy = y0 - 660 * u * T + 520 * u * T * T; o.r = rR + f * 16 * T; }
+    else if (v === 2) { o.cx = x0 + dir * 230 * u * T; o.cy = y0 - 600 * u * T + 520 * u * T * T; o.r = f * 10 * T; }
+    else { o.cx = x0 + Math.sin(T * 22) * 4 * u; o.cy = y0 - 160 * u * T - 700 * u * T * T; o.r = rR * Math.max(0, 1 - T * 6) + Math.sin(T * 16) * .06; }
+    return o;
+  },
+  tossStep(p) {
+    const o = this.pose(p, p.ml - p.t), u = V.u;
+    if (!o.free || p.popped) return;
+    if (!p.rel) { p.rel = true; Sound.play('throw'); Haptics.buzz(15); }
+    p.trail.push(o.cx, o.cy); if (p.trail.length > 18) p.trail.splice(0, 2);
+    if (p.toss === 3 && Math.random() < .6) FX.burst(o.cx - V.len / 2 * Math.sin(o.r), o.cy + V.len / 2 * Math.cos(o.r), Math.random() < .5 ? '#fb923c' : '#fde047', 2, 90 * u, 260 * u, .35);
+    if (o.T >= [0, .55, .5, .52][p.toss] || o.cy < 70 * u) {
+      p.popped = true;
+      const x = o.cx, y = o.cy;
+      FX.burst(x, y, p.hex, 30, 440 * u, 240 * u, .9); FX.burst(x, y, '#fde047', 18, 340 * u, 200 * u, .8); FX.burst(x, y, '#ffffff', 10, 260 * u, 120 * u, .6);
+      FX.ring(x, y, p.hex, 95 * u, .5, 6 * u); if (p.toss === 3) FX.ring(x, y, '#fde047', 140 * u, .7, 4 * u);
+      Sound.play('star', 2); Sound.play('combo', 3); Haptics.buzz(30);
+    }
+  },
   whiff(x, y) { if (this.P[0].on || this.P[1].on) return; const p = this.P[2]; p.on = true; p.x = x; p.y = y; p.t = p.ml = .32; p.grip = false; Sound.play('whiff'); },
-  update(dt) { for (const p of this.P) if (p.on && (p.t -= dt) <= 0) p.on = false; },
+  update(dt) { for (const p of this.P) { if (!p.on) continue; if (p.toss) this.tossStep(p); if ((p.t -= dt) <= 0) p.on = false; } },
   gripping() { for (const p of this.P) if (p.on && p.grip) return true; return false; },
   draw(g, tc) {
     const half = V.stw / 2, u = V.u, flip = save.settings.left ? -1 : 1;
     for (const p of this.P) {
       if (!p.on) continue;
       const k = 1 - p.t / p.ml;                    // 0 → 1 over the hand's short life
+      if (p.toss) {                                // celebration throw
+        const o = this.pose(p, p.ml - p.t), spr = stickSprite(p.hex, p.kind, true, p.sym);
+        if (o.ha > 0) { g.globalAlpha = o.ha; handBack(g, o.hx, o.hy, u, o.close, flip, tc); }
+        if (!p.popped) {
+          for (let i = 0; i < p.trail.length; i += 2) { const a = (i + 2) / p.trail.length, r = (2 + a * 5) * u; g.globalAlpha = a * .55; blit(g, dotSprite(p.hex), p.trail[i] - r, p.trail[i + 1] - r, r * 2, r * 2); }
+          if (p.toss === 3 && o.free) { const bx = o.cx - V.len / 2 * Math.sin(o.r), by = o.cy + V.len / 2 * Math.cos(o.r), fl = (14 + Math.random() * 6) * u; g.globalAlpha = .9; blit(g, dotSprite('#fb923c'), bx - fl, by - fl * .4, fl * 2, fl * 2); blit(g, dotSprite('#fde047'), bx - fl * .5, by - fl * .2, fl, fl); }
+          g.globalAlpha = 1; g.save(); g.translate(o.cx, o.cy); g.rotate(o.r); blit(g, spr, -half - spr.pad, -V.len / 2 - spr.pad); g.restore();
+        }
+        if (o.ha > 0) { g.globalAlpha = o.ha; handFront(g, o.hx, o.hy, u, o.close, flip); }
+        g.globalAlpha = 1; continue;
+      }
       if (p.grip) {                                // reach in and close (first ~90 ms), then lift the stick away
         const close = clamp(k / .22, 0, 1), lift = k < .3 ? 0 : Math.pow((k - .3) / .7, 1.6), slide = (1 - close) * 9 * u;
         const dx = flip * (lift * 14 * u + slide), dy = -lift * 48 * u, spr = stickSprite(p.hex, p.kind, false, p.sym);
@@ -3459,21 +3563,25 @@ function podSprite(kind) {
     g.strokeStyle = '#ffffff'; g.lineWidth = 1.5 * u; g.stroke();
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#0f172a';
     g.font = kind === 'x2' ? '400 ' + Math.round(15 * u) + 'px Lalezar, sans-serif' : Math.round(14 * u) + 'px serif';
-    g.fillText(Drone.ICO[kind], 0, kind === 'x2' ? 1 * u : 1);
+    if (kind === 'spring') drawSpring(g, 0, 8 * u, .62 * u, 0, true);
+    else g.fillText(Drone.ICO[kind], 0, kind === 'x2' ? 1 * u : 1);
   });
 }
 /** A drone crosses the play area now and then carrying a power; tap it to collect. */
 const Drone = {
   on: false, x: 0, y: 0, by: 0, vx: 0, t: 0, next: 0, kind: 'slow',
-  KINDS: ['heart', 'slow', 'magnet', 'x2'],
-  COL: { heart: '#f43f5e', slow: '#22d3ee', magnet: '#a78bfa', x2: '#fde047' },
-  ICO: { heart: '❤️', slow: '⏱️', magnet: '🧲', x2: '×2' },
+  KINDS: ['heart', 'slow', 'magnet', 'x2', 'spring'], springN: 0, springGot: false,
+  COL: { heart: '#f43f5e', slow: '#22d3ee', magnet: '#a78bfa', x2: '#fde047', spring: '#4ade80' },
+  ICO: { heart: '❤️', slow: '⏱️', magnet: '🧲', x2: '×2', spring: '' },
   wait() { const e = CFG.drone.every; return e[0] + Math.random() * (e[1] - e[0]); },
-  reset() { this.on = false; this.next = this.wait() * .5; },
-  enabled() { const m = Game.mode; return m !== 'tutorial' && m !== 'attract' && m !== 'none' && Game.n >= CFG.drone.from; },
+  reset() { this.on = false; this.springN = 0; this.springGot = false; const f = CFG.spring.first; this.next = this.early() ? f[0] + Math.random() * (f[1] - f[0]) : this.wait() * .5; },
+  /** Early levels: the drone only comes with springs, at most `passes` times, until they are collected. */
+  early() { const S = CFG.spring; return Game.mode === 'level' && Game.n >= S.from && Game.n < CFG.drone.from && this.springN < S.passes && !this.springGot; },
+  enabled() { const m = Game.mode; return m !== 'tutorial' && m !== 'attract' && m !== 'none' && m !== 'cinema' && (Game.n >= CFG.drone.from || this.early()); },
   spawn() {
     const G = Game, u = V.u, d = Math.random() < .5 ? 1 : -1, pool = this.KINDS.filter(k => k !== 'heart' || (G.maxLives && G.lives < G.maxLives));
     this.kind = pool[Math.random() * pool.length | 0];
+    if (G.n < CFG.drone.from) { this.kind = 'spring'; this.springN++; }
     this.x = d > 0 ? V.sx - 40 * u : V.sx + V.sw + 40 * u;
     this.by = lerp(V.arcTop + V.sag + 70 * u, V.fy - 110 * u, .15 + Math.random() * .6);
     this.y = this.by; this.vx = d * V.sw * CFG.drone.speed; this.t = 0; this.on = true;
@@ -3482,7 +3590,7 @@ const Drone = {
   update(dt) {
     if (!this.on) { if (this.enabled() && !Game.ending && (this.next -= dt) <= 0) this.spawn(); return; }
     this.t += dt; this.x += this.vx * dt; this.y = this.by + Math.sin(this.t * 3) * 6 * V.u;
-    if (this.x < V.sx - 60 * V.u || this.x > V.sx + V.sw + 60 * V.u) { this.on = false; this.next = this.wait(); }
+    if (this.x < V.sx - 60 * V.u || this.x > V.sx + V.sw + 60 * V.u) { this.on = false; this.next = this.early() ? 5 : this.wait(); }
   },
   hit(px, py) {
     if (!this.on) return false;
@@ -3499,6 +3607,7 @@ const Drone = {
     if (k === 'heart') { G.lives = Math.min(G.maxLives, G.lives + 1); HUD.lives(); }
     else if (k === 'slow') G.powSlowT = CFG.drone.slow;
     else if (k === 'magnet') G.magnetT = CFG.drone.magnet;
+    else if (k === 'spring') { G.springT = CFG.spring.dur; this.springGot = true; Sound.play('boing'); }
     else G.x2T = CFG.drone.x2;
     HUD.powers();
   },
@@ -3511,6 +3620,56 @@ const Drone = {
     g.fillStyle = 'rgba(220,230,255,.6)';
     for (let i = -1; i <= 1; i += 2) { const w = 11 * u * Math.abs(Math.sin(t * 40 + i)) + 2 * u; g.beginPath(); g.ellipse(x + i * 17 * u, y - 7 * u, w, 1.6 * u, 0, 0, 7); g.fill(); }
     g.globalAlpha = (t * 3 % 1) < .5 ? 1 : .25; blit(g, dotSprite(this.COL[this.kind]), x - 6 * u, y + 2 * u - 6 * u, 12 * u, 12 * u); g.globalAlpha = 1;
+  },
+};
+
+/* ---------- bouncy springs power-up ---------- */
+const SPRING_ICO = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4 14h8M4.5 12.5l7-2-7-2 7-2" fill="none" stroke="#64748b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="8" cy="4.2" rx="5.2" ry="2.6" fill="#4ade80"/></svg>';
+/** A cute coil spring with a smiling cap; base at (x,y), s = scale, sq 0..1 = squashed, happy = closed ^ ^ eyes. */
+function drawSpring(g, x, y, s, sq, happy) {
+  const h = 12 * s * (1 - sq * .55), cw = 11 * s * (1 + sq * .28), ch = 4.6 * s * (1 + sq * .12), cy = -h - ch * .55;
+  g.save(); g.translate(x, y);
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 0, 9 * s, 2.2 * s, 0, 0, 7); g.fill();
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-6 * s, 0);
+  for (let i = 1; i <= 4; i++) g.lineTo((i % 2 ? 6 : -6) * s, -h * i / 4);
+  g.strokeStyle = '#64748b'; g.lineWidth = 2.8 * s; g.stroke(); g.strokeStyle = '#e2e8f0'; g.lineWidth = 1.5 * s; g.stroke();
+  const gr = g.createLinearGradient(0, cy - ch, 0, cy + ch); gr.addColorStop(0, '#bbf7d0'); gr.addColorStop(.45, '#4ade80'); gr.addColorStop(1, '#15803d');
+  g.fillStyle = gr; g.beginPath(); g.ellipse(0, cy, cw, ch, 0, 0, 7); g.fill();
+  g.strokeStyle = 'rgba(240,253,244,.9)'; g.lineWidth = .8 * s; g.stroke();
+  g.fillStyle = 'rgba(244,114,182,.55)'; g.beginPath(); g.ellipse(-6.4 * s, cy + .6 * s, 1.5 * s, .9 * s, 0, 0, 7); g.ellipse(6.4 * s, cy + .6 * s, 1.5 * s, .9 * s, 0, 0, 7); g.fill();
+  g.strokeStyle = g.fillStyle = '#052e16'; g.lineWidth = .9 * s; g.beginPath();
+  if (happy || sq > .3) { g.arc(-3.4 * s, cy, 1.2 * s, Math.PI * 1.1, Math.PI * 1.9); g.moveTo(4.6 * s, cy - .3 * s); g.arc(3.4 * s, cy, 1.2 * s, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+  else { g.arc(-3.4 * s, cy - .5 * s, .95 * s, 0, 7); g.moveTo(4.35 * s, cy - .5 * s); g.arc(3.4 * s, cy - .5 * s, .95 * s, 0, 7); g.fill(); }
+  g.beginPath(); g.arc(0, cy + .2 * s, 1.7 * s, .15 * Math.PI, .85 * Math.PI); g.stroke();
+  g.restore();
+}
+/** While the power lasts, springs pop up under every lane and the sticks you want bounce back up once instead of landing. */
+const Springs = {
+  sq: new Float32Array(CFG.lanes), up: 0,
+  reset() { this.up = 0; this.sq.fill(0); },
+  update(dt) {
+    this.up = clamp(this.up + (Game.springT > 0 ? dt * 4 : -dt * 3), 0, 1);
+    for (let i = 0; i < this.sq.length; i++) if (this.sq[i] > 0) this.sq[i] = Math.max(0, this.sq[i] - dt * 3);
+  },
+  lane(x) { let b = 0; for (let i = 1; i < CFG.lanes; i++) if (Math.abs(V.lanes[i] - x) < Math.abs(V.lanes[b] - x)) b = i; return b; },
+  land(s) {
+    const G = Game, T = G.target;
+    if (G.springT <= 0 || G.mode === 'attract' || s.bounced || s.floor) return false;
+    if (!(s.k === KIND.GOLD || s.k === KIND.LAMP || (s.k === KIND.N && (s.c === T || s.c2 === T)))) return false;   // decoys and bombs land as usual
+    s.bounced = true; s.y = V.fy - V.len - 2; s.vy = -Math.sqrt(2 * V.fall * G.L.g * G.gMul * (V.fy - V.arcTop) * .55);
+    this.sq[this.lane(s.x)] = 1;
+    FX.burst(s.x, V.fy, '#4ade80', 8, 160 * V.u, 300 * V.u, .4); Sound.play('boing'); Haptics.buzz(12);
+    return true;
+  },
+  draw(g) {
+    if (this.up <= 0) return;
+    const u = V.u, e = 1 - Math.pow(1 - this.up, 3), T = Game.springT;
+    if (T > 0 && T < 2 && (T * 5 % 1) < .4) g.globalAlpha = .45;   // blinks before it runs out
+    for (let i = 0; i < CFG.lanes; i++) {
+      const bob = reduced() ? 0 : Math.sin(Render.t * 5 + i) * .04;
+      g.save(); g.translate(V.lanes[i], V.fy + 19 * u); g.scale(1, e * (1 + bob)); drawSpring(g, 0, 0, 1.05 * u, this.sq[i], this.sq[i] > 0); g.restore();
+    }
+    g.globalAlpha = 1;
   },
 };
 
@@ -4243,7 +4402,7 @@ const Cinema = {
     this.say(sc);
     if (logo) logo.classList.toggle('on', sc === 0 || sc === 5);
     if (goal) goal.classList.toggle('on', sc >= 1 && sc <= 4);
-    if (UI.minis[0]) UI.minis[0].mood = this.MOODS[sc];
+    if (UI.minis[0] && UI.minis[0].mood !== 'hand') UI.minis[0].mood = this.MOODS[sc];
     Mascot.set(this.MOODS[sc], 3);
     if (sc === 1) { Game.target = 'b'; HUD.goal(); Render.ledFlash = 1; Sound.play('switch'); }
     else if (sc === 2) { this.targets = [this.drop('b', 4, .9)]; h.on = true; h.no = false; h.x = V.sx + V.sw * .8; h.y = V.H * .9; }
@@ -4314,7 +4473,7 @@ const UI = {
     });
   },
   drawMinis(tc) {
-    for (const m of this.minis) { const g = m.g; g.setTransform(m.d, 0, 0, m.d, 0, 0); g.clearRect(0, 0, m.w, m.h); drawMascot(g, m.w / 2, m.h - 6, m.s, m.mood, Mascot.t, tc, Mascot.blink > 0); }
+    for (const m of this.minis) { const g = m.g; g.setTransform(m.d, 0, 0, m.d, 0, 0); g.clearRect(0, 0, m.w, m.h); if (m.mood === 'hand') drawHandDemo(g, m.w, m.h, Mascot.t); else drawMascot(g, m.w / 2, m.h - 6, m.s, m.mood, Mascot.t, tc, Mascot.blink > 0); }
   },
   coins() { document.querySelectorAll('[data-coins]').forEach(e => { e.textContent = fmt(save.coins); }); },
   coinPill(id) { return '<span class="pill"' + (id ? ' id="' + id + '"' : '') + '><i class="coin"></i><b class="num" data-coins>' + fmt(save.coins) + '</b></span>'; },
@@ -4425,6 +4584,7 @@ const Preview = {
     else if (k === 'bomb') { glow(100, 68, '#f97316', 46); S(100, 28, BOMB_HEX, KIND.BOMB); }
     else if (k === 'shift') { glow(70, 68, COLORS.b.hex, 30); S(70, 28, COLORS.b.hex); glow(130, 68, COLORS.g.hex, 30); S(130, 28, COLORS.g.hex); g.fillStyle = '#f0abfc'; g.font = '400 30px Lalezar, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('→', 100, 66); }
     else if (k === 'drone') { const b = droneSprite(), pd = podSprite('magnet'), sc = 1.6 / V.u; glow(100, 70, '#a78bfa', 50); g.drawImage(pd, 100 - pd.cw * sc / 2, 72 - pd.ch * sc / 2, pd.cw * sc, pd.ch * sc); g.drawImage(b, 100 - b.cw * sc / 2, 44 - b.ch * sc / 2, b.cw * sc, b.ch * sc); }
+    else if (k === 'spring') { glow(100, 84, '#4ade80', 52); drawSpring(g, 100, 124, 2.1, 0, true); S(100, 6, COLORS.b.hex); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 3; g.lineCap = 'round'; [[78, 70], [122, 70], [74, 46], [126, 46]].forEach(([x, y]) => { g.beginPath(); g.moveTo(x, y + 12); g.lineTo(x, y); g.stroke(); }); }
     else if (k === 'cat') { glow(100, 90, '#f59e0b', 50); drawCat(g, 100, 112, 2.1, 1, 'sit', .5, 1); }
     else if (k === 'survive') { glow(100, 65, '#22d3ee', 55); g.font = '62px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⏳', 100, 68); }
     else if (k === 'goldRain') { glow(100, 68, GOLD_HEX, 60); [62, 100, 138].forEach((x, i) => S(x, 20 + (i % 2) * 22, GOLD_HEX, KIND.GOLD)); }
@@ -4477,7 +4637,7 @@ Screens.splash = {
   enter() {
     UI.show('<div class="wrap grow center-t" style="justify-content:center;gap:20px">'
       + '<h1 class="logo float"><b>' + t('title') + '</b><small>' + t('sub') + '</small></h1>'
-      + '<canvas class="mc" data-m="wave" style="width:140px;height:132px"></canvas>'
+      + '<canvas class="mc" data-m="hand" style="width:140px;height:132px"></canvas>'
       + '<p class="blink" style="font-family:var(--f-disp);font-size:1.45rem">' + t('tapStart') + '</p>'
       + '<p class="ver">v' + VERSION + '</p></div>', 'scrim center', 'start');
   },
@@ -4494,7 +4654,7 @@ Screens.menu = {
       + '<button class="btn ico" data-a="settings" aria-label="' + t('settings') + '">' + ICON.gear + '</button></div>'
       + '<div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:12px;padding:4px 0">'
       + '<h1 class="logo float"><b>' + t('title') + '</b><small>' + t('sub') + '</small></h1>'
-      + '<canvas class="mc" data-m="wave" style="width:116px;height:108px"></canvas></div>'
+      + '<canvas class="mc" data-m="hand" style="width:116px;height:108px"></canvas></div>'
       + Season.banner()
       + '<button class="btn pri lg block" data-a="play"><span class="stack">▶ ' + t('play') + '<small>' + t('contLv', u) + ' · ' + worldName(Math.min(NW - 1, Math.floor((u - 1) / PER_WORLD))) + '</small></span></button>'
       + '<div class="mgrid">'
@@ -4515,6 +4675,7 @@ Screens.map = {
   /** Horizontal position (percent) — a gentle winding road. */
   xp(i) { return 50 + 29 * Math.sin(i * .62 + .4); },
   enter() {
+    if (Review.wait) setTimeout(() => Review.ask(), 900);
     const u = unlockedLevel(), tod = themeTod(), H = this.yb(MAX_LV - 1) + this.TOP, top = i => H - this.yb(i);
     const gateY = w => w === 0 ? H - 70 : top(w * PER_WORLD) + (this.GAP + this.GATE) / 2;   // gate sits below a world's first level
     let h = UI.top(t('mapTitle'), '<span class="pill"><span class="star">★</span><b class="num">' + totalStars(save) + '</b></span>' + (Dev.on ? '<button class="btn ico" data-a="devJump" aria-label="' + t('devJumpT') + '">🔧</button>' : '')) + '<div class="saga" style="height:' + H + 'px">';
@@ -4768,7 +4929,7 @@ Screens.cinema = {
     UI.show('<div class="cineLogo"><h1 class="logo"><b>' + t('title') + '</b><small>' + t('sub') + '</small></h1></div>'
       + '<div class="cineGoal" id="cineGoal"><span>' + t('catchThe') + '</span><b>' + t('col_b') + '</b></div>'
       + (p.replay ? '<button class="btn ico cineX" data-a="cineClose" aria-label="' + t('close') + '">✕</button>' : '')
-      + '<div class="card" id="cineCard"><canvas class="mc" data-m="wave" style="width:64px;height:60px"></canvas><p id="cineTxt" aria-live="polite"></p></div>'
+      + '<div class="card" id="cineCard"><canvas class="mc" data-m="hand" style="width:64px;height:60px"></canvas><p id="cineTxt" aria-live="polite"></p></div>'
       + '<div class="cineBar"><i id="cineFill"></i></div>', 'cinema');
   },
   update(dt) { Cinema.update(dt); },

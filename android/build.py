@@ -22,6 +22,7 @@ WEB_FILES = ['index.html', 'manifest.webmanifest']          # plus the folders b
 WEB_DIRS = ['icons', 'fonts']
 BUILD = tempfile.mkdtemp(prefix='fallingsticks-android-')   # a fresh folder outside the synced project
 OUT = os.path.join(HERE, 'out')
+LIBS = os.path.join(HERE, 'libs')                           # Play In-App Review + its deps as .aar files (git-ignored, see README)
 ENV = dict(os.environ, JAVA_HOME=JDK, PATH=os.path.join(JDK, 'bin') + os.pathsep + os.environ.get('PATH', ''))
 
 
@@ -63,21 +64,35 @@ def main():
     for f in WEB_FILES: shutil.copy(os.path.join(ROOT, f), www)
     for d in WEB_DIRS: shutil.copytree(os.path.join(ROOT, d), os.path.join(www, d))
 
+    aars = sorted(f for f in os.listdir(LIBS) if f.endswith('.aar')) if os.path.isdir(LIBS) else []
+    if not aars: sys.exit('android/libs has no .aar files (Play In-App Review), see android/README.md')
+    jars, lib_res, pkgs = [], [], []
+    for f in aars:                                              # unpack each library: code, resources, package name (for its R class)
+        d = os.path.join(BUILD, 'aar', f[:-4])
+        with zipfile.ZipFile(os.path.join(LIBS, f)) as z: z.extractall(d)
+        jars.append(os.path.join(d, 'classes.jar'))
+        pkgs.append(re.search(r'package="([^"]+)"', io.open(os.path.join(d, 'AndroidManifest.xml'), encoding='utf-8').read()).group(1))
+        if os.path.isdir(os.path.join(d, 'res')): lib_res.append(os.path.join(d, 'res'))
+
     aapt2 = tool('aapt2')                                       # 2. resources + manifest
     run(aapt2, 'compile', '--dir', os.path.join(HERE, 'res'), '-o', os.path.join(BUILD, 'res.zip'))
-    link = [aapt2, 'link', '-I', ANDROID_JAR, '--manifest', os.path.join(HERE, 'AndroidManifest.xml'), os.path.join(BUILD, 'res.zip'),
+    overlays = []
+    for i, r in enumerate(lib_res):
+        z = os.path.join(BUILD, 'lib%d.zip' % i); run(aapt2, 'compile', '--dir', r, '-o', z); overlays += ['-R', z]
+    gen = os.path.join(BUILD, 'gen')
+    link = [aapt2, 'link', '-I', ANDROID_JAR, '--manifest', os.path.join(HERE, 'AndroidManifest.xml'), os.path.join(BUILD, 'res.zip'), *overlays,
             '-A', os.path.join(BUILD, 'assets'), '--min-sdk-version', MIN_SDK, '--target-sdk-version', TARGET,
             '--version-code', vcode, '--version-name', vname, '--auto-add-overlay']
-    run(*link, '-o', os.path.join(BUILD, 'res.apk'))
+    run(*link, '--java', gen, '--extra-packages', ':'.join(pkgs), '-o', os.path.join(BUILD, 'res.apk'))
     run(*link, '--proto-format', '-o', os.path.join(BUILD, 'proto.apk'))
 
     classes = os.path.join(BUILD, 'classes')                   # 3. code
-    srcs = [os.path.join(dp, f) for dp, _, fs in os.walk(os.path.join(HERE, 'src')) for f in fs if f.endswith('.java')]
+    srcs = [os.path.join(dp, f) for top in ('src', gen) for dp, _, fs in os.walk(os.path.join(HERE, top)) for f in fs if f.endswith('.java')]
     run(os.path.join(JDK, 'bin', 'javac'), '-encoding', 'UTF-8', '-source', '8', '-target', '8', '-Xlint:-options',
-        '-bootclasspath', ANDROID_JAR, '-d', classes, *srcs, quiet=True)
+        '-bootclasspath', ANDROID_JAR, '-classpath', os.pathsep.join(jars), '-d', classes, *srcs, quiet=True)
     dex = os.path.join(BUILD, 'dex'); os.makedirs(dex)
     cls = [os.path.join(dp, f) for dp, _, fs in os.walk(classes) for f in fs if f.endswith('.class')]
-    run(tool('d8'), '--release', '--min-api', MIN_SDK, '--lib', ANDROID_JAR, '--output', dex, *cls)
+    run(tool('d8'), '--release', '--min-api', MIN_SDK, '--lib', ANDROID_JAR, '--output', dex, *cls, *jars)
 
     s = signing()
     ENV['FS_KS_PASS'], ENV['FS_KEY_PASS'] = s['storePassword'], s['keyPassword']
@@ -85,7 +100,9 @@ def main():
 
     unsigned = os.path.join(BUILD, 'unsigned.apk')             # 4. APK: add dex, align, sign
     shutil.copy(os.path.join(BUILD, 'res.apk'), unsigned)
-    with zipfile.ZipFile(unsigned, 'a', zipfile.ZIP_DEFLATED) as z: z.write(os.path.join(dex, 'classes.dex'), 'classes.dex')
+    dexes = sorted(f for f in os.listdir(dex) if f.endswith('.dex'))
+    with zipfile.ZipFile(unsigned, 'a', zipfile.ZIP_DEFLATED) as z:
+        for f in dexes: z.write(os.path.join(dex, f), f)
     aligned = os.path.join(BUILD, 'aligned.apk')
     run(tool('zipalign'), '-f', '-p', '4', unsigned, aligned)
     apk = os.path.join(OUT, base + '.apk')
@@ -99,7 +116,7 @@ def main():
             n = it.filename
             dst = 'manifest/AndroidManifest.xml' if n == 'AndroidManifest.xml' else n   # res/, assets/, resources.pb stay as they are
             z.writestr(dst, src.read(n))
-        z.write(os.path.join(dex, 'classes.dex'), 'dex/classes.dex')
+        for f in dexes: z.write(os.path.join(dex, f), 'dex/' + f)
     aab = os.path.join(OUT, base + '.aab')
     if os.path.exists(aab): os.remove(aab)
     java = os.path.join(JDK, 'bin', 'java')

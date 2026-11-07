@@ -326,6 +326,54 @@
     Game.setup('level', 3); SM.go('play'); eq(appBack(), 'ok'); eq(SM.state, 'pause'); Modal.open('<p>x</p>'); appBack(); ok(!Modal.isOpen(), 'modal closed'); SM.go('menu');
   });
   await T('fonts ship with the game', async () => { const r = await fetch('../fonts/fonts.css'); ok(r.ok, 'fonts.css'); const css = await r.text(); for (const m of css.matchAll(/url\(([^)]+)\)/g)) ok((await fetch('../fonts/' + m[1])).ok, m[1]); ok(!/fonts\.googleapis/.test(document.head.innerHTML), 'no Google Fonts link'); });
+  await T('title screens show the grabbing hand instead of Bebo', () => {
+    fresh(); SM.go('splash'); step(.3); ok(UI.minis.length > 0 && UI.minis.every(m => m.mood === 'hand'), 'splash');
+    SM.go('menu'); step(.3); ok(UI.minis.length > 0 && UI.minis.every(m => m.mood === 'hand'), 'menu');
+    const c = document.createElement('canvas'); c.width = 140; c.height = 132; const g = c.getContext('2d');
+    for (let t = 0; t < 4.2; t += .05) drawHandDemo(g, 140, 132, t);
+    ok(g.getImageData(0, 0, 140, 132).data.some(v => v > 0), 'drew something');
+  });
+  await T('life sticks replace the hearts in the HUD', () => {
+    fresh(); Game.setup('level', 5); HUD.lives();
+    eq(document.querySelectorAll('#hLives .life').length, Game.maxLives); eq(document.querySelectorAll('#hLives svg').length, 0);
+    Game.lives--; HUD.lives(true); eq(document.querySelectorAll('#hLives .life.off').length, 1); eq(document.querySelectorAll('#hLives .life.brk').length, 1);
+  });
+  await T('springs: a drone brings them in early levels, sticks you want bounce back once', () => {
+    fresh(); Game.setup('level', 2); ok(!Drone.enabled(), 'not before level 3');
+    Game.setup('level', 3); ok(Drone.enabled(), 'level 3'); ok(Drone.next >= CFG.spring.first[0] && Drone.next <= CFG.spring.first[1], 'comes early');
+    Drone.spawn(); eq(Drone.kind, 'spring'); Drone.collect(); ok(Game.springT > 0, 'active'); ok(!Drone.enabled(), 'once per level');
+    const lives = Game.lives, s = falling(Game.target); s.y = V.fy - V.len; Game.land(s);
+    ok(s.st === ST.FALL && s.bounced && s.vy < 0, 'bounced'); eq(Game.lives, lives); eq(Game.missed, 0);
+    Game.land(s); eq(Game.missed, 1, 'only one bounce per stick');
+    const d = falling(other()); Game.land(d); eq(d.st, ST.GONE, 'decoys land as usual');
+    Game.springT = 0; const m = falling(Game.target); Game.land(m); eq(Game.missed, 2, 'no springs once it ran out');
+    Game.setup('level', 40); ok(Drone.KINDS.includes('spring') && Drone.enabled(), 'one of the drone powers later');
+    Game.springT = 5; HUD.powers(); ok(HUD.e.pups.innerHTML.includes('<svg'), 'HUD timer');
+  });
+  await T('winning stick: celebration throw with 2+ stars, three styles that never repeat in a row', () => {
+    const win = lost => {
+      fresh(); startRun('level', 4); if (SM.state === 'intro') SM.go('countdown'); SM.go('play');
+      Game.lost = lost; Game.caught = Game.L.goal - 1; const s = falling(Game.target); Game.grab(s, s.y + V.len * .5); return Glove.last;
+    };
+    let p = win(0); ok(p.toss >= 1 && p.toss <= 3, 'throw'); ok(Game.ending >= 1.3, 'longer ending');
+    step(1.4); ok(p.popped, 'burst at the top'); eq(SM.state, 'end');
+    p = win(1); ok(p.toss > 0, '2 stars'); p = win(2); eq(p.toss, 0, 'no throw for 1 star');
+    const seen = new Set(); let last = -1;
+    for (let i = 0; i < 40; i++) { const q = Glove.P[0]; q.on = true; q.grip = true; q.toss = 0; Glove.last = q; ok(Glove.toss(), 'toss'); ok(q.toss !== last, 'repeat'); last = q.toss; seen.add(q.toss);
+      for (let t = 0; t < 1.25; t += .05) { const o = Glove.pose(q, t); ok([o.cx, o.cy, o.r, o.hx, o.hy].every(Number.isFinite), 'pose'); } }
+    eq(seen.size, 3); Glove.clear();
+  });
+  await T('Play rating card: first after level 3 (2+ stars), then every 10-18 levels, days apart, never after a loss', () => {
+    let calls = 0; window.FSNative = { review() { calls++; } }; Review.force = true;
+    try {
+      fresh(); const end = (n, r) => { Game.setup('level', n); return Review.onEnd(Object.assign({ win: true, stars: 3 }, r)); };
+      ok(!end(2), 'not before level 3'); ok(!end(3, { stars: 1 }), '1 star'); ok(!end(3, { win: false }), 'loss'); ok(!end(3, { test: true }), 'test run');
+      ok(end(3), 'level 3'); eq(save.review.n, 1); ok(save.review.next >= 13 && save.review.next <= 21, 'next ' + save.review.next);
+      ok(!end(save.review.next - 1), 'too soon'); ok(!end(save.review.next), 'same day'); save.review.at -= 3 * 864e5; ok(end(save.review.next), 'later level, days later');
+      save.review.n = CFG.review.max; save.review.at = 0; ok(!end(150), 'max');
+      Review.force = false; save.review = { n: 0, next: 0, at: 0 }; ok(!end(3), 'website: never');
+    } finally { Review.force = false; Review.wait = false; delete window.FSNative; }
+  });
   await T('no errors were logged during the run', () => errs.length ? errs.slice(0, 5).join(' | ') : true);
 
   parent.__done(R);

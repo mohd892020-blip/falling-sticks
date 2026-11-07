@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -19,6 +20,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.play.core.review.ReviewInfo;
+import com.google.android.play.core.review.ReviewManager;
+import com.google.android.play.core.review.ReviewManagerFactory;
 
 import java.io.InputStream;
 
@@ -73,6 +80,8 @@ public class MainActivity extends Activity {
             }
         });
 
+        web.addJavascriptInterface(new Bridge(), "FSNative");   // only our own bundled pages are ever loaded in this WebView
+
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(BG);
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -92,6 +101,25 @@ public class MainActivity extends Activity {
 
         if (state != null) web.restoreState(state);
         else web.loadUrl("https://" + HOST + "/index.html?app=android");
+    }
+
+    /** Called from the game (window.FSNative). */
+    private class Bridge {
+        @JavascriptInterface
+        public void review() { runOnUiThread(new Runnable() { @Override public void run() { askReview(); } }); }
+    }
+
+    /** Google Play In-App Review: Play decides whether the card really shows (quota); it does nothing outside a Play install. */
+    private void askReview() {
+        try {
+            final ReviewManager m = ReviewManagerFactory.create(this);
+            m.requestReviewFlow().addOnCompleteListener(new OnCompleteListener<ReviewInfo>() {
+                @Override
+                public void onComplete(Task<ReviewInfo> task) {
+                    if (task.isSuccessful() && !isFinishing()) m.launchReviewFlow(MainActivity.this, task.getResult());
+                }
+            });
+        } catch (Exception ignored) { }
     }
 
     private static String mime(String p) {
