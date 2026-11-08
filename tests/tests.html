@@ -104,8 +104,8 @@
     ok(last <= CFG.xp.max, 'max level'); eq(Player.title(1), t('titles')[0]); eq(Player.title(99), t('titles')[CFG.titles.length - 1]);
     const ups = Player.gain(Player.need(1)); eq(ups.length, 1); eq(ups[0].l, 2); eq(save.coins, TRACK[0].coins);
     let need = 0; for (let l = 1; l < 5; l++) need += Player.need(l);
-    fresh(); Player.gain(need); ok(save.shop.owned.bebo.includes('cap'), 'level 5 gives the cap');
-    fresh({ shop: { owned: { bebo: ['none', 'cap'] } } }); const c0 = save.coins; Player.gain(need); ok(save.coins - c0 >= 150 + 50 + 60 + 70, 'owned item turns into coins');
+    fresh(); Player.gain(need); ok(save.shop.owned.pet.includes('bow'), 'level 5 gives the pet bow');
+    fresh({ shop: { owned: { pet: ['none', 'bow'] } } }); const c0 = save.coins; Player.gain(need); ok(save.coins - c0 >= 150 + 50 + 60 + 70, 'owned item turns into coins');
   });
   await T('player: old progress turns into XP once', () => { fresh({ stars: Array(30).fill(3), bossBeat: [true, true], xpInit: false }); const l = Player.retro(); ok(l > 1, 'level ' + l); ok(save.xpInit); eq(Player.retro(), 0, 'second call'); });
   await T('album: stickers and set reward', () => {
@@ -115,12 +115,12 @@
   });
   await T('season: Ramadan lanterns grant each reward once', () => {
     fresh(); Season.id = 'ramadan'; save.event = { id: 'ramadan-test', n: 0, got: [] };
-    eq(Season.add(25).length, 1); eq(save.coins, CFG.ramadan[0].coins); eq(Season.add(30).length, 1); ok(save.shop.owned.bebo.includes('lantern'), 'lantern');
+    eq(Season.add(25).length, 1); eq(save.coins, CFG.ramadan[0].coins); eq(Season.add(30).length, 1); ok(save.shop.owned.pet.includes('lantern'), 'lantern');
     eq(Season.add(100).length, 1); eq(Season.add(100).length, 0); Season.id = ''; eq(Season.add(10).length, 0);
   });
   await T('season: Eid doubles the daily gift; event items cannot be bought', () => {
     fresh(); Season.id = 'eid'; eq(Daily.reward(1), CFG.dailyRewards[0] * 2); Season.id = ''; eq(Daily.reward(1), CFG.dailyRewards[0]);
-    save.coins = 99999; Screens.shop.tab = 'bebo'; Actions.buy('lantern'); ok(!save.shop.owned.bebo.includes('lantern'), 'bought an event item');
+    save.coins = 99999; Screens.shop.tab = 'pet'; Actions.buy('lantern'); ok(!save.shop.owned.pet.includes('lantern'), 'bought an event item');
   });
   await T('smart assist: kicks in after 3 fails, respects the setting', () => {
     fresh({ fails: { 20: 3 } }); Game.setup('level', 20); ok(Game.assist, 'assist on'); ok(Math.abs(Game.L.g - cfg(20).g * CFG.assist.grav) < 1e-9, 'gravity');
@@ -332,6 +332,32 @@
     const c = document.createElement('canvas'); c.width = 140; c.height = 132; const g = c.getContext('2d');
     for (let t = 0; t < 4.2; t += .05) drawHandDemo(g, 140, 132, t);
     ok(g.getImageData(0, 0, 140, 132).data.some(v => v > 0), 'drew something');
+  });
+  await T('no Bebo on the platform during play (and no speech bubbles)', () => {
+    fresh(); startRun('level', 5); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); step(.5);
+    const d0 = window.drawMascot; let n = 0; window.drawMascot = function () { n++; return d0.apply(this, arguments); };
+    try { rf(1 / 60); } finally { window.drawMascot = d0; }
+    eq(n, 0, 'drawn in play'); Mascot.say('bWin'); ok(!document.querySelector('#bubble').classList.contains('on'), 'bubble');
+  });
+  await T('Bebo is gone: pet on the map / profile / end screen, old accessories refunded once', () => {
+    fresh({ coins: 10, shop: { owned: { bebo: ['none', 'cap', 'crown', 'lantern'] }, eq: { bebo: 'crown' } } });
+    eq(save.coins, 10 + 200 + 1500); ok(save.shop.owned.pet.includes('lantern'), 'lantern moves to the pet'); ok(!('bebo' in SHOP) && !('bebo' in save.shop.owned), 'no Bebo shop');
+    save = migrate(JSON.parse(JSON.stringify(save))); eq(save.coins, 1710, 'refund only once');
+    for (const sc of ['map', 'profile', 'about', 'splash', 'menu']) { SM.go(sc); step(.2); ok(UI.minis.every(m => m.mood === 'pet' || m.mood === 'hand'), sc); }
+    const c = document.createElement('canvas'); c.width = 60; c.height = 60; for (const k of ['cat', 'pup', 'duck', 'bunny']) drawPetIcon(c.getContext('2d'), k, 30, 54, 1.2, 'lantern', .3);
+  });
+  await T('fake shakes: extra sticks shake with the real one but never fall (from level 18)', () => {
+    const c0 = CFG.feint.chance;
+    try {
+      CFG.feint.chance = 1; fresh(); Game.setup('level', 17); Game.spawn(); eq(Game.sticks.filter(q => q.fk > 0).length, 0, 'none before level 18');
+      fresh(); startRun('level', 30); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99;
+      Game.sticks.forEach(q => Game.resetStick(q)); Game.spawn();
+      const real = Game.sticks.find(q => q.st === ST.WARN), fakes = Game.sticks.filter(q => q.fk > 0);
+      ok(real && fakes.length >= 1 && fakes.length <= 2, 'fakes ' + fakes.length); ok(fakes.every(q => q.st === ST.HANG && q !== real), 'fakes hang');
+      const lives = Game.lives, f = fakes[0]; Game.tap(f.x, arcY(f.x) + 10 * V.u + V.len / 2, 'touch', true); eq(Game.lives, lives, 'tapping a fake costs nothing'); eq(Game.caught, 0);
+      Game.spawnT = 99; step(Game.L.warn + .1); eq(real.st, ST.FALL, 'real one falls'); ok(fakes.every(q => q.st === ST.HANG && q.fk <= 0), 'fakes settle');
+      rf(1 / 60);
+    } finally { CFG.feint.chance = c0; }
   });
   await T('life sticks replace the hearts in the HUD', () => {
     fresh(); Game.setup('level', 5); HUD.lives();
