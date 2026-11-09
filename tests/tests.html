@@ -388,6 +388,22 @@
     await new Promise(r => setTimeout(r, 120)); eq(document.querySelectorAll('#toasts .toast').length, 0, 'toasts cleared when the level starts');
     ok(!t('cine3').includes('…'), 'no ellipsis glyph in the intro font');
   });
+  await T('no hitches: every sprite is built before the run, a quality drop waits for the end of the run', () => {
+    fresh(); startRun('level', 80); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.lives = 99; step(.1);   /* the backdrop, machine and level sign are drawn by the countdown frames */
+    const get0 = Cache.get, built = [];
+    Cache.get = function (k, w, h, d) { if (!this.m.has(k)) built.push(k); return get0.call(this, k, w, h, d); };
+    try {
+      for (let i = 0; i < 4 && built.length === 0; i++) { Game.target = COLOR_KEYS[i % Game.L.nc]; HUD.goal(); Game.slowT = .5; Drone.spawn(); step(2.5); Game.lives = 99; }
+      eq(built.join(), '', 'sprites built mid-run');
+    } finally { Cache.get = get0; }
+    const q0 = save.settings.autoQ, s0 = save.settings.quality, d0 = V.dpr;
+    try {
+      save.settings.quality = 'auto'; save.settings.autoQ = 'high'; Perf.bad = 1; Perf.warm = 9; Perf.t0 = 1; Perf.last = 1; Perf.frames = 10; Perf.sample(4000, 1 / 60);
+      eq(save.settings.autoQ, 'medium', 'stepped down'); eq(V.dpr, d0, 'but not mid-run'); ok(Perf.pending, 'pending');
+      SM.go('menu'); ok(!Perf.pending, 'applied after the run');
+    } finally { save.settings.autoQ = q0; save.settings.quality = s0; Perf.pending = false; applyQuality(); }
+    ok(getComputedStyle(document.querySelector('#hLives .life') || document.body).backgroundImage !== '', 'life sticks drawn');
+  });
   await T('life sticks replace the hearts in the HUD', () => {
     fresh(); Game.setup('level', 5); HUD.lives();
     eq(document.querySelectorAll('#hLives .life').length, Game.maxLives); eq(document.querySelectorAll('#hLives svg').length, 0);
