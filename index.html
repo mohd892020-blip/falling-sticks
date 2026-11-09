@@ -509,7 +509,7 @@ input[type=range]{height:44px}
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
@@ -546,6 +546,7 @@ const CFG = {
   quick: { frac: .34, bonus: 5 },                       // "Quick!" = caught in the first third of the fall (+bonus × multiplier)
   drone: { from: 16, every: [20, 30], speed: .17, slow: 3, slowScale: .55, magnet: 5, magnetMul: 2.6, x2: 10 },
   mascotInPlay: false,                          // Bebo the robot was removed in 2.11 (user decision); the companion pet shows on the map, profile and end screens
+  zap: { from: 12, zone: .14 },                        // electrified zone: a falling stick can't be grabbed in the first 14% of its drop (half with assist); a grab there = zap, combo lost, no heart lost
   feint: { from: 18, chance: .22, ramp: .003, max: .5, two: .35, bait: .7 },   // fake shakes: chance per drop (+ramp per level), sometimes 2, mostly in the target colour
   spring: { from: 3, early: 15, dur: 10, first: [4, 7], passes: 2 },   // bouncy springs power-up: a drone brings it once per level in levels from..early, later it is one of the drone powers
   review: { first: 3, gap: [10, 18], days: 2, max: 5 },              // Play rating card: first after a 2+ star win from level 3, then every 10-18 levels (2+ days apart), at most 5 times
@@ -652,7 +653,7 @@ const INTROS = [
   { n: CFG.unlock.colors3, key: 'colors3' }, { n: CFG.unlock.switch, key: 'switch' },
   { n: CFG.unlock.gold, key: 'gold' }, { n: CFG.unlock.double, key: 'double' },
   { n: CFG.unlock.bomb, key: 'bomb' }, { n: CFG.unlock.shift, key: 'shift' },
-  { n: CFG.spring.from, key: 'spring' }, { n: CFG.drone.from, key: 'drone' }, { n: CFG.cat.from, key: 'cat' }, { n: CFG.feint.from, key: 'feint' },
+  { n: CFG.spring.from, key: 'spring' }, { n: CFG.drone.from, key: 'drone' }, { n: CFG.cat.from, key: 'cat' }, { n: CFG.zap.from, key: 'zap' }, { n: CFG.feint.from, key: 'feint' },
   { n: CFG.special.survive.fromWorld * PER_WORLD + CFG.special.survive.idx, key: 'survive' },
   { n: CFG.special.goldRain.fromWorld * PER_WORLD + CFG.special.goldRain.idx, key: 'goldRain' },
   { n: CFG.special.dark.fromWorld * PER_WORLD + CFG.special.dark.idx, key: 'dark' },
@@ -802,7 +803,7 @@ const STR = {
     in_bomb: 'القنابل', in_bombD: 'العصا السودا بعلامة التحذير ممنوع تلمسها! خلّيها تقع.',
     in_shift: 'العصي المتلوّنة', in_shiftD: 'العصا اللي إلها لمعة قوس قزح بتغيّر لونها وهي نازلة — شوف لونها الأخير.',
     in_boss: 'مرحلة الزعيم 👑', in_bossD: 'هدف أكبر وسرعة أعلى. اهزمه عشان تفتح العالم الجاي!',
-    tips: ['نصيحة: المس العصا من نصّها — منطقة اللمس واسعة.', 'نصيحة: الكومبو بينكسر مع أي غلطة، فما تستعجل.', 'نصيحة: العصا بتهتز قبل ما تنزل — هاي إشارتك!', 'نصيحة: العصي الملوّنة المعلّقة ديكور، لونها الحقيقي بيبين لما تهتز.', 'نصيحة: فعّل وضع عمى الألوان من الإعدادات لو بدك رموز ● ▲ ■.', 'نصيحة: الذهبية بتبطّئ الوقت — استغلها!', 'نصيحة: ارجع كل يوم للمكافأة اليومية والتحدي اليومي.', 'نصيحة: بنمط التدريب بتقدر تجرّب أي مرحلة فتحتها بدون خسارة.', 'نصيحة: اجمع عملات وغيّر شكل العصي والمنصة من المتجر.', 'نصيحة: لما يتغيّر لون القوس، العصي بتوقف لحظة — استعد!', 'نصيحة: إذا بتلعب بإيدك الشمال، فعّل وضع اليد اليسرى.', 'نصيحة: ثلاث نجوم = ولا قلب ضايع.', 'نصيحة: المس العصا نفسها — اللمس صار دقيق.', 'نصيحة: المس الدرون عشان تاخد قوة خاصة.', 'نصيحة: البسّة ممكن ترجّع عصا وقعت منك — مرة وحدة بكل مرحلة.', 'نصيحة: المسكة بأول النزلة = سريع! ونقاط زيادة.', 'نصيحة: عندك مهام يومية جديدة كل يوم من زر 📋.'],
+    tips: ['نصيحة: المس العصا من نصّها — منطقة اللمس واسعة.', 'نصيحة: الكومبو بينكسر مع أي غلطة، فما تستعجل.', 'نصيحة: العصا بتهتز قبل ما تنزل — هاي إشارتك!', 'نصيحة: العصي الملوّنة المعلّقة ديكور، لونها الحقيقي بيبين لما تهتز.', 'نصيحة: فعّل وضع عمى الألوان من الإعدادات لو بدك رموز ● ▲ ■.', 'نصيحة: الذهبية بتبطّئ الوقت — استغلها!', 'نصيحة: ارجع كل يوم للمكافأة اليومية والتحدي اليومي.', 'نصيحة: بنمط التدريب بتقدر تجرّب أي مرحلة فتحتها بدون خسارة.', 'نصيحة: اجمع عملات وغيّر شكل العصي والمنصة من المتجر.', 'نصيحة: لما يتغيّر لون القوس، العصي بتوقف لحظة — استعد!', 'نصيحة: إذا بتلعب بإيدك الشمال، فعّل وضع اليد اليسرى.', 'نصيحة: ثلاث نجوم = ولا قلب ضايع.', 'نصيحة: المس العصا نفسها — اللمس صار دقيق.', 'نصيحة: المس الدرون عشان تاخد قوة خاصة.', 'نصيحة: البسّة ممكن ترجّع عصا وقعت منك — مرة وحدة بكل مرحلة.', 'نصيحة: امسكها أول ما تبطّل تطقطق كهربا = سريع! ونقاط زيادة.', 'نصيحة: عندك مهام يومية جديدة كل يوم من زر 📋.'],
     cheer: ['إيدك سريعة! ⚡', 'ولا أروع! 🔥', 'بطل الأركيد! 🕹️', 'كمّل هيك! 💪', 'عيونك صقر! 🦅', 'ممتاز يا معلّم! ⭐', 'ما في أسرع منك! 🚀', 'أداء نظيف! ✨'],
     loseMsg: ['قرّبت! جرّب كمان مرة 💪', 'ولا يهمك، المرة الجاية بتزبط!', 'ركّز على لون القوس 👀', 'خذ نفس وارجع أقوى!'],
     bHappy: ['ياي!', 'ممتاز!', 'واو!', 'حلو!'], bSad: ['أوف!', 'آخ!', 'لا لا!'], bCombo: ['كومبو! 🔥', 'نار! 🔥', 'كمّل!'], bSwitch: ['انتبه! 🔄'], bGold: ['ذهب! ✨'], bBomb: ['بوم! 💥'], bWin: ['فزنا! 🎉', 'يا سلام!'], bLose: ['المرة الجاية!'],
@@ -826,7 +827,7 @@ const STR = {
     petPick: 'اختار', petOn: 'معك ✓', petName: 'الاسم', petAcc: 'الإكسسوارات', petSave: 'كواك! كمان مرة!', petCalm: 'روّق…', it_pet_none: 'بدون', it_pet_bow: 'فيونكة',
     it_pet_collar: 'طوق', it_pet_party: 'طاقية حفلة', it_pet_crown: 'تاج',
     rotate: 'لفّ جوالك بالطول عشان تلعب',
-    clog: [['1.0.1', 'لعب أنعم على الجوال بدون تعليق، وعصي الحياة صار لونها نفس لون الهدف.'], ['1.0.0', 'أول إطلاق: 150 مرحلة في 10 عوالم نيون وزعيم كل 15 مرحلة، أوضاع لا نهائي والتحدي اليومي والتمرين، حيوانات رفيقة إلها مهارات، زنبركات، مراحل فلاش الكاميرا ⚡، متجر وألبوم ملصقات وإنجازات — وكلها بتشتغل بدون نت.']],
+    clog: [['1.0.2', 'منطقة مكهربة من المرحلة 12: العصا أول ما تنزل بتطقطق كهربا، وإذا مسكتها فيها بتنصعق وبيروح الكومبو.'], ['1.0.1', 'لعب أنعم على الجوال بدون تعليق، وعصي الحياة صار لونها نفس لون الهدف.'], ['1.0.0', 'أول إطلاق: 150 مرحلة في 10 عوالم نيون وزعيم كل 15 مرحلة، أوضاع لا نهائي والتحدي اليومي والتمرين، حيوانات رفيقة إلها مهارات، زنبركات، مراحل فلاش الكاميرا ⚡، متجر وألبوم ملصقات وإنجازات — وكلها بتشتغل بدون نت.']],
     gift: 'المكافأة', mins: '{0} د', hours: '{0} س {1} د',
     pw_spring: 'زنبركات!', pw_heart: '+1 ❤️', pw_slow: 'إبطاء!', pw_magnet: 'مغناطيس!', pw_x2: 'نقاط ×2', quick: 'سريع!', catSave: 'البسّة رجّعتها! 🐾', enraged: 'الزعيم عصّب! 😡',
     bossName: 'زعيم {0}', hudSurvive: 'صمود · {0} ث', survivedN: 'صمدت {0} من {1} ثانية',
@@ -835,6 +836,7 @@ const STR = {
     in_drone: 'الدرون والقوى الخاصة', in_droneD: 'كل شوي بيمرق درون شايل قوة خاصة: قلب، إبطاء، مغناطيس أو نقاط ×2. المسه عشان تاخدها!',
     in_feint: 'اهتزاز مخادع', in_feintD: 'انتبه: أحياناً كذا عصا بتهتز مع بعض، بس وحدة بس بتنزل فعلاً. لا تستعجل، استنى لحد ما تنزل!',
     in_flash: 'فلاش الكاميرا ⚡', in_flashD: 'كاميرا الماكينة بتضرب فلاش قوي كل كم ثانية وبتعمي الشاشة لحظة. لما تشوف العدسة بتلمع، تذكّر وين العصا وامسكها!',
+    in_zap: 'منطقة مكهربة ⚡', in_zapD: 'أول ما تنزل العصا بتكون مكهربة! إذا مسكتها وهي بتطقطق كهربا بتنصعق وبيروح الكومبو. استنى لحد ما تبطّل تطقطق، وبعدين امسكها.', zap: 'صعقة! ⚡',
     in_cat: 'بسّة الحارة', in_catD: 'بسّة بتتمشى على المنصة. إذا وقعت عصا الهدف عليها بترجّعها لفوق مرة وحدة بكل مرحلة، والذهبية عليها بتعطيك عملات. ولو لمستها… بتخرخر 😺',
     in_survive: 'مرحلة صمود ⏳', in_surviveD: 'ما في عدد مسكات مطلوب — بس اصمد لآخر الوقت بدون ما تخسر كل قلوبك.',
     in_goldRain: 'مطر ذهبي 💰', in_goldRainD: 'العصي الذهبية بتنزل كتير بهالمرحلة — كل وحدة بنقطتين وبتبطّئ الوقت!',
@@ -898,7 +900,7 @@ const STR = {
     in_bomb: 'Bombs', in_bombD: 'Never touch the black stick with the warning sign! Let it fall.',
     in_shift: 'Shifting sticks', in_shiftD: 'Sticks with a rainbow shimmer change colour mid-fall — watch their final colour.',
     in_boss: 'Boss level 👑', in_bossD: 'Bigger goal, higher speed. Beat it to open the next world!',
-    tips: ['Tip: tap the middle of the stick — the touch area is generous.', 'Tip: any mistake breaks your combo, so stay calm.', 'Tip: sticks shake before they drop — that\'s your cue!', 'Tip: hanging sticks are decoration; the real colour shows when they shake.', 'Tip: turn on colour-blind mode in Settings for ● ▲ ■ symbols.', 'Tip: golden sticks slow time — use it!', 'Tip: come back daily for the reward and daily challenge.', 'Tip: Practice mode lets you replay any unlocked level without losing.', 'Tip: earn coins and restyle sticks and platform in the Shop.', 'Tip: when the arch changes colour, sticks pause briefly — get ready!', 'Tip: playing left-handed? Turn on left-handed mode.', 'Tip: three stars = no hearts lost.', 'Tip: tap the stick itself — touch is precise now.', 'Tip: tap the drone to grab a power.', 'Tip: the cat can bat a dropped stick back up — once per level.', 'Tip: catch early in the fall for a Quick! bonus.', 'Tip: new daily missions every day from the 📋 button.'],
+    tips: ['Tip: tap the middle of the stick — the touch area is generous.', 'Tip: any mistake breaks your combo, so stay calm.', 'Tip: sticks shake before they drop — that\'s your cue!', 'Tip: hanging sticks are decoration; the real colour shows when they shake.', 'Tip: turn on colour-blind mode in Settings for ● ▲ ■ symbols.', 'Tip: golden sticks slow time — use it!', 'Tip: come back daily for the reward and daily challenge.', 'Tip: Practice mode lets you replay any unlocked level without losing.', 'Tip: earn coins and restyle sticks and platform in the Shop.', 'Tip: when the arch changes colour, sticks pause briefly — get ready!', 'Tip: playing left-handed? Turn on left-handed mode.', 'Tip: three stars = no hearts lost.', 'Tip: tap the stick itself — touch is precise now.', 'Tip: tap the drone to grab a power.', 'Tip: the cat can bat a dropped stick back up — once per level.', 'Tip: grab it right after the sparks stop for a Quick! bonus.', 'Tip: new daily missions every day from the 📋 button.'],
     cheer: ['Lightning hands! ⚡', 'Awesome! 🔥', 'Arcade hero! 🕹️', 'Keep it up! 💪', 'Eagle eyes! 🦅', 'Superb! ⭐', 'Nobody\'s faster! 🚀', 'Clean run! ✨'],
     loseMsg: ['So close! Try again 💪', 'No worries, next time!', 'Keep your eyes on the arch 👀', 'Breathe and come back stronger!'],
     bHappy: ['Yay!', 'Great!', 'Wow!', 'Nice!'], bSad: ['Oof!', 'Ouch!', 'No no!'], bCombo: ['Combo! 🔥', 'On fire! 🔥', 'Keep going!'], bSwitch: ['Heads up! 🔄'], bGold: ['Gold! ✨'], bBomb: ['Boom! 💥'], bWin: ['We won! 🎉', 'Yes!'], bLose: ['Next time!'],
@@ -922,7 +924,7 @@ const STR = {
     petPick: 'Choose', petOn: 'With you ✓', petName: 'Name', petAcc: 'Accessories', petSave: 'Quack! Again!', petCalm: 'Calm…', it_pet_none: 'None',
     it_pet_bow: 'Bow', it_pet_collar: 'Collar', it_pet_party: 'Party hat', it_pet_crown: 'Crown',
     rotate: 'Turn your phone upright to play',
-    clog: [['1.0.1', 'Smoother play on phones (no more hitches), and the life sticks now take the colour you must catch.'], ['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements — all playable offline.']],
+    clog: [['1.0.2', 'Electric zone from level 12: a stick crackles right after it drops, grab it then and you get zapped and lose your combo.'], ['1.0.1', 'Smoother play on phones (no more hitches), and the life sticks now take the colour you must catch.'], ['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements — all playable offline.']],
     gift: 'Reward', mins: '{0}m', hours: '{0}h {1}m',
     pw_spring: 'Springs!', pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', catSave: 'The cat saved it! 🐾', enraged: 'The boss is furious! 😡',
     bossName: 'Boss of {0}', hudSurvive: 'Survive · {0}s', survivedN: 'Survived {0} of {1} s',
@@ -931,6 +933,7 @@ const STR = {
     in_drone: 'Drones & powers', in_droneD: 'Now and then a drone flies by carrying a power: a heart, slow-mo, a magnet or double points. Tap it to grab it!',
     in_feint: 'Fake shakes', in_feintD: 'Watch out: sometimes several sticks shake, but only one really falls. Don’t tap too soon — wait until it drops!',
     in_flash: 'Camera flash ⚡', in_flashD: 'The machine’s camera fires a bright flash every few seconds and blinds the screen for a moment. When the lens starts to glow, remember where the stick is and grab it!',
+    in_zap: 'Electric zone ⚡', in_zapD: 'A stick is electrified right after it drops! Grab it while it crackles and you get zapped and lose your combo. Wait until the sparks stop, then grab it.', zap: 'Zap! ⚡',
     in_cat: 'The street cat', in_catD: 'A cat strolls across the platform. If a target stick lands on it, it bats it back up once per level, and a golden stick on it gives coins. Pet it… it purrs 😺',
     in_survive: 'Survival level ⏳', in_surviveD: 'No catch goal — just survive until the timer ends without losing all your hearts.',
     in_goldRain: 'Golden rain 💰', in_goldRainD: 'Golden sticks fall all the time here — each is worth two and slows time!',
@@ -1022,7 +1025,7 @@ STR.fr = {
     in_bomb: 'Bombes', in_bombD: 'Ne touche jamais le bâton noir avec le panneau danger ! Laisse-le tomber.',
     in_shift: 'Bâtons changeants', in_shiftD: 'Les bâtons aux reflets arc-en-ciel changent de couleur en tombant — regarde leur couleur finale.',
     in_boss: 'Niveau de boss 👑', in_bossD: 'Objectif plus grand, vitesse plus élevée. Bats-le pour ouvrir le monde suivant !',
-    tips: ['Astuce : touche le milieu du bâton — la zone tactile est large.', 'Astuce : la moindre erreur casse ton combo, alors reste calme.', 'Astuce : les bâtons tremblent avant de tomber — c’est ton signal !', 'Astuce : les bâtons suspendus sont du décor, leur vraie couleur apparaît quand ils tremblent.', 'Astuce : active le mode daltonien dans les Réglages pour les symboles ● ▲ ■.', 'Astuce : les bâtons dorés ralentissent le temps — profites-en !', 'Astuce : reviens chaque jour pour la récompense et le défi du jour.', 'Astuce : le mode Entraînement te laisse rejouer n’importe quel niveau débloqué sans perdre.', 'Astuce : gagne des pièces et relooke tes bâtons et ta plateforme dans la Boutique.', 'Astuce : quand l’arche change de couleur, les bâtons font une petite pause — tiens-toi prêt !', 'Astuce : tu joues de la main gauche ? Active le mode gaucher.', 'Astuce : trois étoiles = aucun cœur perdu.', 'Astuce : vise le bâton lui-même — le tactile est précis maintenant.', 'Astuce : touche le drone pour récupérer un pouvoir.', 'Astuce : le chat peut renvoyer en l’air un bâton tombé — une fois par niveau.', 'Astuce : attrape tôt dans la chute pour un bonus Rapide !', 'Astuce : de nouvelles missions chaque jour avec le bouton 📋.'],
+    tips: ['Astuce : touche le milieu du bâton — la zone tactile est large.', 'Astuce : la moindre erreur casse ton combo, alors reste calme.', 'Astuce : les bâtons tremblent avant de tomber — c’est ton signal !', 'Astuce : les bâtons suspendus sont du décor, leur vraie couleur apparaît quand ils tremblent.', 'Astuce : active le mode daltonien dans les Réglages pour les symboles ● ▲ ■.', 'Astuce : les bâtons dorés ralentissent le temps — profites-en !', 'Astuce : reviens chaque jour pour la récompense et le défi du jour.', 'Astuce : le mode Entraînement te laisse rejouer n’importe quel niveau débloqué sans perdre.', 'Astuce : gagne des pièces et relooke tes bâtons et ta plateforme dans la Boutique.', 'Astuce : quand l’arche change de couleur, les bâtons font une petite pause — tiens-toi prêt !', 'Astuce : tu joues de la main gauche ? Active le mode gaucher.', 'Astuce : trois étoiles = aucun cœur perdu.', 'Astuce : vise le bâton lui-même — le tactile est précis maintenant.', 'Astuce : touche le drone pour récupérer un pouvoir.', 'Astuce : le chat peut renvoyer en l’air un bâton tombé — une fois par niveau.', 'Astuce : attrape-le juste après les étincelles pour un bonus Rapide !', 'Astuce : de nouvelles missions chaque jour avec le bouton 📋.'],
     cheer: ['Mains éclair ! ⚡', 'Génial ! 🔥', 'Héros de l’arcade ! 🕹️', 'Continue comme ça ! 💪', 'Œil d’aigle ! 🦅', 'Superbe ! ⭐', 'Personne n’est plus rapide ! 🚀', 'Sans faute ! ✨'],
     loseMsg: ['Presque ! Réessaie 💪', 'Pas grave, la prochaine fois !', 'Garde l’œil sur l’arche 👀', 'Respire et reviens plus fort !'],
     bHappy: ['Youpi !', 'Super !', 'Waouh !', 'Joli !'], bSad: ['Aïe !', 'Ouille !', 'Non non !'], bCombo: ['Combo ! 🔥', 'En feu ! 🔥', 'Continue !'], bSwitch: ['Attention ! 🔄'], bGold: ['De l’or ! ✨'], bBomb: ['Boum ! 💥'], bWin: ['On a gagné ! 🎉', 'Oui !'], bLose: ['La prochaine fois !'],
@@ -1047,7 +1050,7 @@ STR.fr = {
     petLock: 'Débloqué au niveau {0}', petPick: 'Choisir', petOn: 'Avec toi ✓', petName: 'Nom', petAcc: 'Accessoires', petSave: 'Coin ! Encore !',
     petCalm: 'Calme…', it_pet_none: 'Aucun', it_pet_bow: 'Nœud', it_pet_collar: 'Collier', it_pet_party: 'Chapeau de fête', it_pet_crown: 'Couronne',
     rotate: 'Tourne ton téléphone en portrait pour jouer',
-    clog: [['1.0.1', 'Jeu plus fluide sur téléphone (sans saccades) et les bâtons de vie prennent la couleur à attraper.'], ['1.0.0', 'Première version : 150 niveaux dans 10 mondes néon avec un boss tous les 15 niveaux, modes Infini, Défi du jour et Entraînement, compagnons avec des talents, ressorts rebondissants, niveaux flash ⚡, boutique, album d’autocollants et succès — le tout hors ligne.']],
+    clog: [['1.0.2', 'Zone électrique dès le niveau 12 : un bâton crépite juste après sa chute, l’attraper à ce moment-là fait perdre le combo.'], ['1.0.1', 'Jeu plus fluide sur téléphone (sans saccades) et les bâtons de vie prennent la couleur à attraper.'], ['1.0.0', 'Première version : 150 niveaux dans 10 mondes néon avec un boss tous les 15 niveaux, modes Infini, Défi du jour et Entraînement, compagnons avec des talents, ressorts rebondissants, niveaux flash ⚡, boutique, album d’autocollants et succès — le tout hors ligne.']],
     gift: 'Récompense', mins: '{0} min', hours: '{0} h {1} min',
     pw_spring: 'Ressorts !', pw_heart: '+1 ❤️', pw_slow: 'Ralenti !', pw_magnet: 'Aimant !', pw_x2: 'Points doublés !', quick: 'Rapide !', catSave: 'Le chat l’a sauvé ! 🐾', enraged: 'Le boss est furieux ! 😡',
     bossName: 'Boss : {0}', hudSurvive: 'Survie · {0} s', survivedN: 'Survie : {0} s sur {1}',
@@ -1056,6 +1059,7 @@ STR.fr = {
     in_drone: 'Drones et pouvoirs', in_droneD: 'De temps en temps, un drone passe avec un pouvoir : un cœur, un ralenti, un aimant ou des points doublés. Touche-le pour l’attraper !',
     in_feint: 'Fausses secousses', in_feintD: 'Attention : parfois plusieurs bâtons tremblent, mais un seul tombe vraiment. Ne touche pas trop tôt, attends qu’il tombe !',
     in_flash: 'Flash photo ⚡', in_flashD: 'La caméra de la machine lance un flash éblouissant toutes les quelques secondes. Quand l’objectif s’allume, retiens où est le bâton et attrape-le !',
+    in_zap: 'Zone électrique ⚡', in_zapD: 'Un bâton est électrifié juste après sa chute ! Si tu l’attrapes pendant qu’il crépite, tu prends une décharge et tu perds ton combo. Attends que les étincelles s’arrêtent.', zap: 'Zap ! ⚡',
     in_cat: 'Le chat des rues', in_catD: 'Un chat se balade sur la plateforme. Si un bâton cible tombe sur lui, il le renvoie en l’air une fois par niveau, et un bâton doré sur lui donne des pièces. Caresse-le… il ronronne 😺',
     in_survive: 'Niveau survie ⏳', in_surviveD: 'Pas d’objectif de prises — survis jusqu’à la fin du chrono sans perdre tous tes cœurs.',
     in_goldRain: 'Pluie d’or 💰', in_goldRainD: 'Ici, les bâtons dorés tombent sans arrêt — chacun compte double et ralentit le temps !',
@@ -1134,7 +1138,7 @@ STR.es = {
     in_bomb: 'Bombas', in_bombD: '¡Nunca toques el palito negro con la señal de peligro! Déjalo caer.',
     in_shift: 'Palitos cambiantes', in_shiftD: 'Los palitos con brillo arcoíris cambian de color mientras caen: fíjate en su color final.',
     in_boss: 'Nivel de jefe 👑', in_bossD: 'Meta más grande y más velocidad. ¡Véncelo para abrir el siguiente mundo!',
-    tips: ['Consejo: toca el centro del palito, el área táctil es amplia.', 'Consejo: cualquier error rompe tu combo, así que mantén la calma.', 'Consejo: los palitos tiemblan antes de caer. ¡Esa es tu señal!', 'Consejo: los palitos colgados son decoración; el color real se ve cuando tiemblan.', 'Consejo: activa el modo daltónico en Ajustes para ver los símbolos ● ▲ ■.', 'Consejo: los palitos dorados frenan el tiempo. ¡Aprovéchalo!', 'Consejo: vuelve cada día por el premio y el desafío diario.', 'Consejo: el modo Práctica te deja repetir cualquier nivel desbloqueado sin perder.', 'Consejo: gana monedas y cambia el estilo de los palitos y la plataforma en la Tienda.', 'Consejo: cuando el arco cambia de color, los palitos se detienen un momento. ¡Prepárate!', 'Consejo: ¿eres zurdo? Activa el modo zurdo.', 'Consejo: tres estrellas = sin perder corazones.', 'Consejo: toca el palito en sí, ahora el toque es preciso.', 'Consejo: toca el dron para agarrar un poder.', 'Consejo: el gato puede devolver hacia arriba un palito que se cae, una vez por nivel.', 'Consejo: atrapa al principio de la caída para ganar el bono «¡Rápido!».', 'Consejo: hay misiones diarias nuevas cada día en el botón 📋.'],
+    tips: ['Consejo: toca el centro del palito, el área táctil es amplia.', 'Consejo: cualquier error rompe tu combo, así que mantén la calma.', 'Consejo: los palitos tiemblan antes de caer. ¡Esa es tu señal!', 'Consejo: los palitos colgados son decoración; el color real se ve cuando tiemblan.', 'Consejo: activa el modo daltónico en Ajustes para ver los símbolos ● ▲ ■.', 'Consejo: los palitos dorados frenan el tiempo. ¡Aprovéchalo!', 'Consejo: vuelve cada día por el premio y el desafío diario.', 'Consejo: el modo Práctica te deja repetir cualquier nivel desbloqueado sin perder.', 'Consejo: gana monedas y cambia el estilo de los palitos y la plataforma en la Tienda.', 'Consejo: cuando el arco cambia de color, los palitos se detienen un momento. ¡Prepárate!', 'Consejo: ¿eres zurdo? Activa el modo zurdo.', 'Consejo: tres estrellas = sin perder corazones.', 'Consejo: toca el palito en sí, ahora el toque es preciso.', 'Consejo: toca el dron para agarrar un poder.', 'Consejo: el gato puede devolver hacia arriba un palito que se cae, una vez por nivel.', 'Consejo: atrápalo justo cuando paren las chispas para ganar el bono «¡Rápido!».', 'Consejo: hay misiones diarias nuevas cada día en el botón 📋.'],
     cheer: ['¡Manos de rayo! ⚡', '¡Increíble! 🔥', '¡Héroe del arcade! 🕹️', '¡Sigue así! 💪', '¡Ojos de águila! 🦅', '¡Excelente! ⭐', '¡Nadie es más rápido! 🚀', '¡Ronda perfecta! ✨'],
     loseMsg: ['¡Casi! Inténtalo de nuevo 💪', '¡No pasa nada, a la próxima!', 'No le quites los ojos al arco 👀', '¡Respira y vuelve con más fuerza!'],
     bHappy: ['¡Sí!', '¡Genial!', '¡Guau!', '¡Bien!'], bSad: ['¡Uf!', '¡Ay!', '¡No, no!'], bCombo: ['¡Combo! 🔥', '¡En racha! 🔥', '¡Sigue así!'], bSwitch: ['¡Atención! 🔄'], bGold: ['¡Oro! ✨'], bBomb: ['¡Bum! 💥'], bWin: ['¡Ganamos! 🎉', '¡Sí!'], bLose: ['¡La próxima!'],
@@ -1160,7 +1164,7 @@ STR.es = {
     petLock: 'Se desbloquea en el nivel {0}', petPick: 'Elegir', petOn: 'Contigo ✓', petName: 'Nombre', petAcc: 'Accesorios', petSave: '¡Cuac! ¡Otra vez!',
     petCalm: 'Calma…', it_pet_none: 'Ninguno', it_pet_bow: 'Lazo', it_pet_collar: 'Collar', it_pet_party: 'Gorro de fiesta', it_pet_crown: 'Corona',
     rotate: 'Gira el móvil en vertical para jugar',
-    clog: [['1.0.1', 'Juego más fluido en el móvil (sin tirones) y los palitos de vida toman el color que debes atrapar.'], ['1.0.0', 'Primera versión: 150 niveles en 10 mundos neón con un jefe cada 15 niveles, modos Infinito, Reto diario y Práctica, mascotas con habilidades, resortes saltarines, niveles con flash ⚡, tienda, álbum de pegatinas y logros, todo sin conexión.']],
+    clog: [['1.0.2', 'Zona eléctrica desde el nivel 12: el palito chispea justo al caer, si lo agarras entonces pierdes el combo.'], ['1.0.1', 'Juego más fluido en el móvil (sin tirones) y los palitos de vida toman el color que debes atrapar.'], ['1.0.0', 'Primera versión: 150 niveles en 10 mundos neón con un jefe cada 15 niveles, modos Infinito, Reto diario y Práctica, mascotas con habilidades, resortes saltarines, niveles con flash ⚡, tienda, álbum de pegatinas y logros, todo sin conexión.']],
     gift: 'Premio', mins: '{0} min', hours: '{0} h {1} min',
     pw_spring: '¡Resortes!', pw_heart: '+1 ❤️', pw_slow: '¡Cámara lenta!', pw_magnet: '¡Imán!', pw_x2: '¡Puntos dobles!', quick: '¡Rápido!', catSave: '¡El gato lo salvó! 🐾', enraged: '¡El jefe está furioso! 😡',
     bossName: 'Jefe de {0}', hudSurvive: 'Sobrevive · {0}s', survivedN: 'Sobreviviste {0} de {1} s',
@@ -1169,6 +1173,7 @@ STR.es = {
     in_drone: 'Drones y poderes', in_droneD: 'De vez en cuando pasa un dron con un poder: un corazón, cámara lenta, un imán o puntos dobles. ¡Tócalo para agarrarlo!',
     in_feint: 'Temblores falsos', in_feintD: 'Ojo: a veces tiemblan varios palitos, pero solo uno cae de verdad. No toques antes de tiempo, ¡espera a que caiga!',
     in_flash: 'Flash de cámara ⚡', in_flashD: 'La cámara de la máquina lanza un flash cegador cada pocos segundos. Cuando el lente empiece a brillar, ¡recuerda dónde está el palito y atrápalo!',
+    in_zap: 'Zona eléctrica ⚡', in_zapD: '¡Un palito está electrificado justo después de caer! Si lo agarras mientras chispea, te da una descarga y pierdes el combo. Espera a que paren las chispas.', zap: '¡Zap! ⚡',
     in_cat: 'El gato callejero', in_catD: 'Un gato pasea por la plataforma. Si un palito objetivo cae sobre él, lo devuelve hacia arriba una vez por nivel, y un palito dorado sobre él da monedas. Acarícialo… ¡ronronea! 😺',
     in_survive: 'Nivel de supervivencia ⏳', in_surviveD: 'Sin meta de atrapadas: solo sobrevive hasta que acabe el tiempo sin perder todos tus corazones.',
     in_goldRain: 'Lluvia dorada 💰', in_goldRainD: 'Aquí caen palitos dorados todo el tiempo. ¡Cada uno vale por dos y frena el tiempo!',
@@ -1247,7 +1252,7 @@ STR.pt = {
     in_bomb: 'Bombas', in_bombD: 'Nunca toque no bastão preto com o sinal de perigo! Deixe cair.',
     in_shift: 'Bastões mutantes', in_shiftD: 'Bastões com brilho de arco-íris mudam de cor durante a queda — veja a cor final.',
     in_boss: 'Nível do chefão 👑', in_bossD: 'Meta maior, velocidade maior. Vença para abrir o próximo mundo!',
-    tips: ['Dica: toque no meio do bastão — a área de toque é generosa.', 'Dica: qualquer erro quebra seu combo, então mantenha a calma.', 'Dica: os bastões tremem antes de cair — esse é o seu sinal!', 'Dica: os bastões pendurados são decoração; a cor real aparece quando eles tremem.', 'Dica: ative o modo daltônico nos Ajustes para ver os símbolos ● ▲ ■.', 'Dica: bastões dourados deixam o tempo lento — aproveite!', 'Dica: volte todo dia pelo prêmio e pelo desafio diário.', 'Dica: no modo Treino você rejoga qualquer nível liberado sem perder.', 'Dica: ganhe moedas e mude o visual dos bastões e da plataforma na Loja.', 'Dica: quando o arco muda de cor, os bastões param um pouco — prepare-se!', 'Dica: é canhoto? Ative o modo canhoto.', 'Dica: três estrelas = nenhum coração perdido.', 'Dica: toque no próprio bastão — agora o toque é preciso.', 'Dica: toque no drone para pegar um poder.', 'Dica: o gato pode jogar de volta pra cima um bastão que caiu — uma vez por nível.', 'Dica: pegue logo no começo da queda para ganhar o bônus Rápido!', 'Dica: missões diárias novas todo dia no botão 📋.'],
+    tips: ['Dica: toque no meio do bastão — a área de toque é generosa.', 'Dica: qualquer erro quebra seu combo, então mantenha a calma.', 'Dica: os bastões tremem antes de cair — esse é o seu sinal!', 'Dica: os bastões pendurados são decoração; a cor real aparece quando eles tremem.', 'Dica: ative o modo daltônico nos Ajustes para ver os símbolos ● ▲ ■.', 'Dica: bastões dourados deixam o tempo lento — aproveite!', 'Dica: volte todo dia pelo prêmio e pelo desafio diário.', 'Dica: no modo Treino você rejoga qualquer nível liberado sem perder.', 'Dica: ganhe moedas e mude o visual dos bastões e da plataforma na Loja.', 'Dica: quando o arco muda de cor, os bastões param um pouco — prepare-se!', 'Dica: é canhoto? Ative o modo canhoto.', 'Dica: três estrelas = nenhum coração perdido.', 'Dica: toque no próprio bastão — agora o toque é preciso.', 'Dica: toque no drone para pegar um poder.', 'Dica: o gato pode jogar de volta pra cima um bastão que caiu — uma vez por nível.', 'Dica: pegue logo depois que as faíscas pararem para ganhar o bônus Rápido!', 'Dica: missões diárias novas todo dia no botão 📋.'],
     cheer: ['Mão de relâmpago! ⚡', 'Incrível! 🔥', 'Herói do fliperama! 🕹️', 'Continue assim! 💪', 'Olhos de águia! 🦅', 'Sensacional! ⭐', 'Ninguém é mais rápido! 🚀', 'Sem erros! ✨'],
     loseMsg: ['Foi por pouco! Tente de novo 💪', 'Tudo bem, fica pra próxima!', 'Fique de olho no arco 👀', 'Respire e volte mais forte!'],
     bHappy: ['Eba!', 'Boa!', 'Uau!', 'Legal!'], bSad: ['Ai!', 'Ui!', 'Não, não!'], bCombo: ['Combo! 🔥', 'Pegando fogo! 🔥', 'Continua!'], bSwitch: ['Atenção! 🔄'], bGold: ['Ouro! ✨'], bBomb: ['Bum! 💥'], bWin: ['Ganhamos! 🎉', 'Isso!'], bLose: ['Fica pra próxima!'],
@@ -1272,7 +1277,7 @@ STR.pt = {
     petLock: 'Desbloqueia no nível {0}', petPick: 'Escolher', petOn: 'Com você ✓', petName: 'Nome', petAcc: 'Acessórios', petSave: 'Quac! De novo!',
     petCalm: 'Calma…', it_pet_none: 'Nenhum', it_pet_bow: 'Laço', it_pet_collar: 'Coleira', it_pet_party: 'Chapéu de festa', it_pet_crown: 'Coroa',
     rotate: 'Vire o celular na vertical para jogar',
-    clog: [['1.0.1', 'Jogo mais suave no celular (sem travadas) e os palitos de vida ficam da cor que você deve pegar.'], ['1.0.0', 'Primeira versão: 150 níveis em 10 mundos neon com um chefe a cada 15 níveis, modos Infinito, Desafio diário e Treino, bichinhos com habilidades, molas saltitantes, níveis com flash ⚡, loja, álbum de figurinhas e conquistas — tudo offline.']],
+    clog: [['1.0.2', 'Zona elétrica a partir do nível 12: o palito solta faíscas logo ao cair, pegar nessa hora faz perder o combo.'], ['1.0.1', 'Jogo mais suave no celular (sem travadas) e os palitos de vida ficam da cor que você deve pegar.'], ['1.0.0', 'Primeira versão: 150 níveis em 10 mundos neon com um chefe a cada 15 níveis, modos Infinito, Desafio diário e Treino, bichinhos com habilidades, molas saltitantes, níveis com flash ⚡, loja, álbum de figurinhas e conquistas — tudo offline.']],
     gift: 'Prêmio', mins: '{0}min', hours: '{0}h {1}min',
     pw_spring: 'Molas!', pw_heart: '+1 ❤️', pw_slow: 'Câmera lenta!', pw_magnet: 'Ímã!', pw_x2: 'Pontos em dobro!', quick: 'Rápido!', catSave: 'O gato salvou! 🐾', enraged: 'O chefão está furioso! 😡',
     bossName: 'Chefão · {0}', hudSurvive: 'Sobreviva · {0}s', survivedN: 'Sobreviveu {0} de {1} s',
@@ -1281,6 +1286,7 @@ STR.pt = {
     in_drone: 'Drones e poderes', in_droneD: 'De vez em quando passa um drone carregando um poder: um coração, câmera lenta, um ímã ou pontos em dobro. Toque nele para pegar!',
     in_feint: 'Tremidas falsas', in_feintD: 'Atenção: às vezes vários palitos tremem, mas só um cai de verdade. Não toque cedo demais, espere ele cair!',
     in_flash: 'Flash da câmera ⚡', in_flashD: 'A câmera da máquina dispara um flash forte a cada poucos segundos e ofusca a tela por um instante. Quando a lente brilhar, lembre onde está o palito e pegue!',
+    in_zap: 'Zona elétrica ⚡', in_zapD: 'Um palito fica eletrificado logo depois de cair! Se você pegar enquanto ele solta faíscas, leva um choque e perde o combo. Espere as faíscas pararem.', zap: 'Choque! ⚡',
     in_cat: 'O gato de rua', in_catD: 'Um gato passeia pela plataforma. Se um bastão-alvo cair nele, ele joga o bastão de volta pra cima uma vez por nível, e um bastão dourado nele dá moedas. Faça carinho… ele ronrona 😺',
     in_survive: 'Nível de sobrevivência ⏳', in_surviveD: 'Sem meta de capturas — só sobreviva até o tempo acabar sem perder todos os corações.',
     in_goldRain: 'Chuva dourada 💰', in_goldRainD: 'Aqui caem bastões dourados o tempo todo — cada um vale dois e deixa o tempo lento!',
@@ -1359,7 +1365,7 @@ STR.tr = {
     in_bomb: 'Bombalar', in_bombD: 'Uyarı işaretli siyah çubuğa asla dokunma! Düşmesine izin ver.',
     in_shift: 'Renk değiştiren çubuklar', in_shiftD: 'Gökkuşağı gibi parlayan çubuklar düşerken renk değiştirir — son renklerine bak.',
     in_boss: 'Boss seviyesi 👑', in_bossD: 'Daha büyük hedef, daha yüksek hız. Yen ve sonraki dünyayı aç!',
-    tips: ['İpucu: çubuğun ortasına dokun — dokunma alanı geniş.', 'İpucu: her hata kombonu bozar, sakin kal.', 'İpucu: çubuklar düşmeden önce titrer — işaretin bu!', 'İpucu: asılı çubuklar süs; gerçek renk titrediklerinde görünür.', 'İpucu: ● ▲ ■ sembolleri için Ayarlar’dan renk körü modunu aç.', 'İpucu: altın çubuklar zamanı yavaşlatır — bundan faydalan!', 'İpucu: ödül ve günlük meydan okuma için her gün uğra.', 'İpucu: Antrenman modunda açtığın her seviyeyi kaybetmeden tekrar oynayabilirsin.', 'İpucu: jeton kazan, Mağaza’da çubukların ve platformun görünümünü değiştir.', 'İpucu: kemer renk değiştirince çubuklar kısa bir an durur — hazır ol!', 'İpucu: solak mısın? Solak modunu aç.', 'İpucu: üç yıldız = hiç kalp kaybetmemek.', 'İpucu: doğrudan çubuğa dokun — dokunma artık çok hassas.', 'İpucu: güç kapmak için drona dokun.', 'İpucu: kedi düşen bir çubuğu yukarı geri sektirebilir — seviye başına bir kez.', 'İpucu: Hızlı! bonusu için çubuğu düşüşün başında yakala.', 'İpucu: 📋 düğmesinde her gün yeni günlük görevler var.'],
+    tips: ['İpucu: çubuğun ortasına dokun — dokunma alanı geniş.', 'İpucu: her hata kombonu bozar, sakin kal.', 'İpucu: çubuklar düşmeden önce titrer — işaretin bu!', 'İpucu: asılı çubuklar süs; gerçek renk titrediklerinde görünür.', 'İpucu: ● ▲ ■ sembolleri için Ayarlar’dan renk körü modunu aç.', 'İpucu: altın çubuklar zamanı yavaşlatır — bundan faydalan!', 'İpucu: ödül ve günlük meydan okuma için her gün uğra.', 'İpucu: Antrenman modunda açtığın her seviyeyi kaybetmeden tekrar oynayabilirsin.', 'İpucu: jeton kazan, Mağaza’da çubukların ve platformun görünümünü değiştir.', 'İpucu: kemer renk değiştirince çubuklar kısa bir an durur — hazır ol!', 'İpucu: solak mısın? Solak modunu aç.', 'İpucu: üç yıldız = hiç kalp kaybetmemek.', 'İpucu: doğrudan çubuğa dokun — dokunma artık çok hassas.', 'İpucu: güç kapmak için drona dokun.', 'İpucu: kedi düşen bir çubuğu yukarı geri sektirebilir — seviye başına bir kez.', 'İpucu: Hızlı! bonusu için kıvılcımlar biter bitmez yakala.', 'İpucu: 📋 düğmesinde her gün yeni günlük görevler var.'],
     cheer: ['Şimşek eller! ⚡', 'Müthiş! 🔥', 'Atari kahramanı! 🕹️', 'Böyle devam! 💪', 'Kartal gözler! 🦅', 'Süper! ⭐', 'Senden hızlısı yok! 🚀', 'Tertemiz! ✨'],
     loseMsg: ['Çok yaklaştın! Tekrar dene 💪', 'Dert etme, bir dahakine!', 'Gözün kemerde olsun 👀', 'Derin bir nefes al, daha güçlü dön!'],
     bHappy: ['Yaşasın!', 'Harika!', 'Vay!', 'Süper!'], bSad: ['Of!', 'Ay!', 'Yok yok!'], bCombo: ['Kombo! 🔥', 'Alev aldın! 🔥', 'Devam!'], bSwitch: ['Dikkat! 🔄'], bGold: ['Altın! ✨'], bBomb: ['Bum! 💥'], bWin: ['Kazandık! 🎉', 'Evet!'], bLose: ['Bir dahakine!'],
@@ -1384,7 +1390,7 @@ STR.tr = {
     petLock: 'Seviye {0}’da açılır', petPick: 'Seç', petOn: 'Seninle ✓', petName: 'İsim', petAcc: 'Aksesuarlar', petSave: 'Vak! Bir daha!', petCalm: 'Sakin…',
     it_pet_none: 'Yok', it_pet_bow: 'Fiyonk', it_pet_collar: 'Tasma', it_pet_party: 'Parti şapkası', it_pet_crown: 'Taç',
     rotate: 'Oynamak için telefonunu dik tut',
-    clog: [['1.0.1', 'Telefonda daha akıcı oyun (takılma yok) ve can çubukları yakalaman gereken rengi alıyor.'], ['1.0.0', 'İlk sürüm: 10 neon dünyada 150 seviye ve her 15 seviyede bir boss, Sonsuz, Günlük meydan okuma ve Antrenman modları, yetenekli evcil dostlar, zıplayan yaylar, kamera flaşlı seviyeler ⚡, mağaza, çıkartma albümü ve başarımlar — hepsi çevrimdışı.']],
+    clog: [['1.0.2', '12. seviyeden itibaren elektrikli bölge: çubuk düşer düşmez çıtırdar, o anda yakalarsan kombo gider.'], ['1.0.1', 'Telefonda daha akıcı oyun (takılma yok) ve can çubukları yakalaman gereken rengi alıyor.'], ['1.0.0', 'İlk sürüm: 10 neon dünyada 150 seviye ve her 15 seviyede bir boss, Sonsuz, Günlük meydan okuma ve Antrenman modları, yetenekli evcil dostlar, zıplayan yaylar, kamera flaşlı seviyeler ⚡, mağaza, çıkartma albümü ve başarımlar — hepsi çevrimdışı.']],
     gift: 'Ödül', mins: '{0}dk', hours: '{0}sa {1}dk',
     pw_spring: 'Yaylar!', pw_heart: '+1 ❤️', pw_slow: 'Ağır çekim!', pw_magnet: 'Mıknatıs!', pw_x2: 'Çift puan!', quick: 'Hızlı!', catSave: 'Kedi kurtardı! 🐾', enraged: 'Boss çok öfkeli! 😡',
     bossName: '{0} Bossu', hudSurvive: 'Hayatta kal · {0}sn', survivedN: 'Dayandın: {0}/{1} sn',
@@ -1393,6 +1399,7 @@ STR.tr = {
     in_drone: 'Dronlar ve güçler', in_droneD: 'Arada bir güç taşıyan bir dron geçer: kalp, ağır çekim, mıknatıs veya çift puan. Kapmak için ona dokun!',
     in_feint: 'Sahte titreme', in_feintD: 'Dikkat: bazen birkaç çubuk birlikte titrer ama sadece biri gerçekten düşer. Erken dokunma, düşmesini bekle!',
     in_flash: 'Kamera flaşı ⚡', in_flashD: 'Makinenin kamerası birkaç saniyede bir parlak bir flaş patlatır ve ekranı bir an kör eder. Mercek parlamaya başlayınca çubuğun yerini aklında tut ve yakala!',
+    in_zap: 'Elektrikli bölge ⚡', in_zapD: 'Çubuk düştüğü anda elektriklidir! Çıtırdarken yakalarsan çarpılırsın ve komboyu kaybedersin. Kıvılcımlar bitene kadar bekle, sonra yakala.', zap: 'Çarptı! ⚡',
     in_cat: 'Sokak kedisi', in_catD: 'Bir kedi platformda geziniyor. Hedef çubuk üstüne düşerse seviye başına bir kez onu geri yukarı sektirir; üstüne düşen altın çubuk ise jeton verir. Onu sev… mırlar 😺',
     in_survive: 'Hayatta kalma seviyesi ⏳', in_surviveD: 'Yakalama hedefi yok — tüm kalplerini kaybetmeden süre bitene kadar dayan.',
     in_goldRain: 'Altın yağmuru 💰', in_goldRainD: 'Burada sürekli altın çubuk yağar — her biri iki değerinde ve zamanı yavaşlatır!',
@@ -1471,7 +1478,7 @@ STR.id = {
     in_bomb: 'Bom', in_bombD: 'Jangan pernah sentuh tongkat hitam bertanda peringatan! Biarkan jatuh.',
     in_shift: 'Tongkat berubah', in_shiftD: 'Tongkat dengan kilau pelangi berganti warna saat jatuh — perhatikan warna akhirnya.',
     in_boss: 'Level bos 👑', in_bossD: 'Sasaran lebih banyak, kecepatan lebih tinggi. Kalahkan untuk membuka dunia berikutnya!',
-    tips: ['Tips: ketuk bagian tengah tongkat — area sentuhnya cukup luas.', 'Tips: setiap kesalahan memutus kombo, jadi tetap tenang.', 'Tips: tongkat bergetar sebelum jatuh — itu tandanya!', 'Tips: tongkat yang tergantung cuma hiasan; warna aslinya muncul saat bergetar.', 'Tips: nyalakan mode buta warna di Pengaturan untuk simbol ● ▲ ■.', 'Tips: tongkat emas memperlambat waktu — manfaatkan!', 'Tips: kembali setiap hari untuk hadiah dan tantangan harian.', 'Tips: di mode Latihan kamu bisa mengulang level yang terbuka tanpa kalah.', 'Tips: kumpulkan koin dan ganti gaya tongkat serta platform di Toko.', 'Tips: saat lengkungan berganti warna, tongkat berhenti sebentar — bersiaplah!', 'Tips: kidal? Nyalakan mode kidal.', 'Tips: tiga bintang = tanpa kehilangan nyawa.', 'Tips: ketuk tongkatnya langsung — sentuhan sekarang presisi.', 'Tips: ketuk drone untuk mengambil kekuatan.', 'Tips: kucing bisa menepis tongkat yang jatuh kembali ke atas — sekali per level.', 'Tips: tangkap di awal jatuhnya untuk bonus Cepat!', 'Tips: misi harian baru setiap hari dari tombol 📋.'],
+    tips: ['Tips: ketuk bagian tengah tongkat — area sentuhnya cukup luas.', 'Tips: setiap kesalahan memutus kombo, jadi tetap tenang.', 'Tips: tongkat bergetar sebelum jatuh — itu tandanya!', 'Tips: tongkat yang tergantung cuma hiasan; warna aslinya muncul saat bergetar.', 'Tips: nyalakan mode buta warna di Pengaturan untuk simbol ● ▲ ■.', 'Tips: tongkat emas memperlambat waktu — manfaatkan!', 'Tips: kembali setiap hari untuk hadiah dan tantangan harian.', 'Tips: di mode Latihan kamu bisa mengulang level yang terbuka tanpa kalah.', 'Tips: kumpulkan koin dan ganti gaya tongkat serta platform di Toko.', 'Tips: saat lengkungan berganti warna, tongkat berhenti sebentar — bersiaplah!', 'Tips: kidal? Nyalakan mode kidal.', 'Tips: tiga bintang = tanpa kehilangan nyawa.', 'Tips: ketuk tongkatnya langsung — sentuhan sekarang presisi.', 'Tips: ketuk drone untuk mengambil kekuatan.', 'Tips: kucing bisa menepis tongkat yang jatuh kembali ke atas — sekali per level.', 'Tips: tangkap tepat setelah percikannya berhenti untuk bonus Cepat!', 'Tips: misi harian baru setiap hari dari tombol 📋.'],
     cheer: ['Tangan kilat! ⚡', 'Keren! 🔥', 'Jagoan arcade! 🕹️', 'Pertahankan! 💪', 'Mata elang! 🦅', 'Luar biasa! ⭐', 'Tak ada yang lebih cepat! 🚀', 'Mulus! ✨'],
     loseMsg: ['Sedikit lagi! Coba lagi 💪', 'Tenang, lain kali pasti bisa!', 'Terus awasi lengkungannya 👀', 'Tarik napas, kembali lebih kuat!'],
     bHappy: ['Yey!', 'Hebat!', 'Wah!', 'Mantap!'], bSad: ['Aduh!', 'Auw!', 'Jangan!'], bCombo: ['Kombo! 🔥', 'Membara! 🔥', 'Terus!'], bSwitch: ['Awas! 🔄'], bGold: ['Emas! ✨'], bBomb: ['Duar! 💥'], bWin: ['Kita menang! 🎉', 'Asyik!'], bLose: ['Lain kali!'],
@@ -1495,7 +1502,7 @@ STR.id = {
     petLock: 'Terbuka di level {0}', petPick: 'Pilih', petOn: 'Bersamamu ✓', petName: 'Nama', petAcc: 'Aksesori', petSave: 'Kwek! Lagi!', petCalm: 'Tenang…',
     it_pet_none: 'Tidak ada', it_pet_bow: 'Pita', it_pet_collar: 'Kalung', it_pet_party: 'Topi pesta', it_pet_crown: 'Mahkota',
     rotate: 'Putar ponsel ke posisi tegak untuk bermain',
-    clog: [['1.0.1', 'Permainan lebih mulus di ponsel (tanpa patah-patah) dan tongkat nyawa mengikuti warna yang harus ditangkap.'], ['1.0.0', 'Rilis pertama: 150 level di 10 dunia neon dengan bos setiap 15 level, mode Tanpa Akhir, Tantangan Harian dan Latihan, hewan pendamping dengan keahlian, pegas memantul, level lampu kilat ⚡, toko, album stiker dan pencapaian — semua bisa dimainkan offline.']],
+    clog: [['1.0.2', 'Zona listrik mulai level 12: tongkat memercik tepat setelah jatuh, menangkapnya saat itu menghilangkan combo.'], ['1.0.1', 'Permainan lebih mulus di ponsel (tanpa patah-patah) dan tongkat nyawa mengikuti warna yang harus ditangkap.'], ['1.0.0', 'Rilis pertama: 150 level di 10 dunia neon dengan bos setiap 15 level, mode Tanpa Akhir, Tantangan Harian dan Latihan, hewan pendamping dengan keahlian, pegas memantul, level lampu kilat ⚡, toko, album stiker dan pencapaian — semua bisa dimainkan offline.']],
     gift: 'Hadiah', mins: '{0} mnt', hours: '{0} jam {1} mnt',
     pw_spring: 'Pegas!', pw_heart: '+1 ❤️', pw_slow: 'Gerak lambat!', pw_magnet: 'Magnet!', pw_x2: 'Poin ganda!', quick: 'Cepat!', catSave: 'Kucingnya menyelamatkan! 🐾', enraged: 'Bosnya marah besar! 😡',
     bossName: 'Bos {0}', hudSurvive: 'Bertahan · {0} dtk', survivedN: 'Bertahan {0} dari {1} dtk',
@@ -1504,6 +1511,7 @@ STR.id = {
     in_drone: 'Drone & kekuatan', in_droneD: 'Sesekali drone terbang lewat membawa kekuatan: nyawa, gerak lambat, magnet, atau poin ganda. Ketuk untuk mengambilnya!',
     in_feint: 'Getaran palsu', in_feintD: 'Awas: kadang beberapa tongkat bergetar, tapi hanya satu yang benar-benar jatuh. Jangan ketuk terlalu cepat, tunggu sampai jatuh!',
     in_flash: 'Lampu kilat kamera ⚡', in_flashD: 'Kamera mesin menembakkan kilatan terang setiap beberapa detik dan menyilaukan layar sesaat. Saat lensa mulai bersinar, ingat posisi tongkat dan tangkap!',
+    in_zap: 'Zona listrik ⚡', in_zapD: 'Tongkat masih berlistrik tepat setelah jatuh! Kalau kamu tangkap saat masih memercik, kamu kesetrum dan combo hilang. Tunggu sampai percikannya berhenti.', zap: 'Kesetrum! ⚡',
     in_cat: 'Kucing jalanan', in_catD: 'Seekor kucing berjalan santai melintasi platform. Kalau tongkat target jatuh di atasnya, dia menepisnya kembali ke atas sekali per level, dan tongkat emas yang jatuh di atasnya memberi koin. Elus dia… dia mendengkur 😺',
     in_survive: 'Level bertahan ⏳', in_surviveD: 'Tanpa target tangkapan — cukup bertahan sampai waktu habis tanpa kehilangan semua nyawa.',
     in_goldRain: 'Hujan emas 💰', in_goldRainD: 'Tongkat emas terus berjatuhan di sini — masing-masing bernilai dua dan memperlambat waktu!',
@@ -1806,6 +1814,7 @@ const Sound = {
       case 'enrage': N(110, .7, 'sawtooth', .09, 0, 60); Z(.5, .1, 500); break;
       case 'bossHit': N(240, .12, 'square', .06, 0, 150); break;
       case 'dark': N(220, .45, 'sine', .07, 0, 70); break;
+      case 'zap': Z(.14, .07, 3800, 'highpass'); N(1500, .09, 'square', .035, 0, 260); N(90, .16, 'sawtooth', .05, .02, 60); break;
       case 'flashCharge': N(900, .45, 'sine', .025, 0, 3400); break;
       case 'flash': Z(.05, .09, 6000, 'highpass'); N(2600, .05, 'square', .03); Z(.35, .05, 1800, 'bandpass', .03); break;
       case 'mission': [523, 784, 1047, 1319].forEach((f, i) => N(f, .2, 'triangle', .07, i * .08)); break;
@@ -2690,6 +2699,20 @@ function drawAccessory(g, acc) {
   }
 }
 
+/** Electric crackle around a stick that is still in the electrified zone (never grab it there). */
+function zapArcs(g, x, y, len, u, now, hot) {
+  if (reduced()) { g.strokeStyle = 'rgba(125,211,252,.85)'; g.lineWidth = 2 * u; g.strokeRect(x - V.stw / 2 - 3 * u, y - 3 * u, V.stw + 6 * u, len + 6 * u); return; }
+  const half = V.stw / 2 + 4 * u, seed = Math.floor(now * 24);
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  for (let k = 0; k < (hot ? 4 : 2); k++) {
+    const r = rng32(seed * 7 + k * 131), side = k % 2 ? 1 : -1;
+    g.beginPath(); g.moveTo(x + side * half, y - 4 * u);
+    for (let i = 1; i <= 6; i++) g.lineTo(x + side * (half + (r() - .3) * 7 * u), y - 4 * u + (len + 8 * u) * i / 6);
+    g.strokeStyle = 'rgba(125,211,252,.35)'; g.lineWidth = 5 * u; g.stroke();
+    g.strokeStyle = k < 2 ? '#e0f2fe' : '#7dd3fc'; g.lineWidth = 1.6 * u; g.stroke();
+  }
+  g.restore();
+}
 /** Draw all sticks: hanging (decor colour), shaking, falling with trail + floor shadow. */
 function drawSticks(g) {
   const u = V.u, len = V.len, cb = save.settings.cb, tgt = Game.target, now = Render.t, q = Qcur, half = V.stw / 2;
@@ -2708,6 +2731,11 @@ function drawSticks(g) {
       else y = s.y;
     }
     const spr = stickSprite(hex, kind, glow, sym);
+    if (s.st === ST.FALL && Game.L && Game.L.zap) {
+      if (Game.inZap(s)) zapArcs(g, x, y, len, u, now, s.zf > 0);
+      else if (!s.zx && !s.up && !s.bounced) { s.zx = 1; FX.burst(x, y + 6 * u, '#bae6fd', 6, 120 * u, 0, .25); }
+      if (s.zf > 0) s.zf -= 1 / 60;
+    }
     if (s.st === ST.FALL) {
       if (!s.up) { const near = clamp((y + len - V.arcTop) / (V.fy - V.arcTop), 0, 1), sh = shadowSprite(); g.globalAlpha = .2 + .5 * near; blit(g, sh, x - 14 * u * (.6 + near * .4), V.fy - 5 * u, 28 * u * (.6 + near * .4), 9 * u); }
       if (q.trail && Math.abs(s.vy) > 40 * u) {
@@ -2857,6 +2885,7 @@ function cfg(n) {
     sw: n >= U.switch, swEvery: CFG.chance.switchEvery, gold: n >= U.gold, goldP: type === 'goldRain' ? SP.goldRain.chance : CFG.chance.gold,
     dbl: n >= U.double ? Math.min(CFG.chance.double, CFG.chance.doubleStart + (n - U.double) * CFG.chance.doubleRamp) : 0, bomb: n >= U.bomb, shift: n >= U.shift,   // double drops ease in
     twoTone: n >= U.twoTone, wind: n >= U.wind && n % 2 === 0, rise: n >= U.rise,   // wind blows on every other level
+    zap: n >= CFG.zap.from,
   };
 }
 /** Same difficulty curve without level-only extras (boss, special type) — for endless, daily, practice. */
@@ -3019,7 +3048,7 @@ const Game = {
       else if (L.shift && r() < CFG.chance.shift) s.shiftY = lerp(arcY(s.x), V.fy - V.len, lerp(CFG.chance.shiftWin[0], CFG.chance.shiftWin[1], r()));
       if (Boss.on && Boss.has('fake') && r() < CFG.boss.fakeChance) s.fake = true;
     }
-    s.st = ST.WARN; s.t = L.warn; s.flash = 1; s.fk = 0;
+    s.st = ST.WARN; s.t = L.warn; s.flash = 1; s.fk = 0; s.zx = 0;
     if (away === undefined) this.feint(s);
     this.drops++;
     if (L.sw && this.mode !== 'attract' && this.drops % L.swEvery === 0) this.pendingSwitch = true;
@@ -3084,10 +3113,25 @@ const Game = {
     if (best) {
       const body = Math.abs(px - best.x) <= half && py >= best.y && py <= best.y + len;
       if (!body && !bestWant && (Drone.hit(px, py) || Cat.hit(px, py) || Pets.hit(px, py))) return;   // a near miss on a decoy: the drone, cat or pet you aimed at wins
+      if (this.inZap(best)) { this.zap(best, px, py); return; }
       this.grab(best, py); return;
     }
     if (Drone.hit(px, py) || Cat.hit(px, py) || Pets.hit(px, py)) return;
     if (primary !== false) Glove.whiff(px, py);   // extra fingers resting on the glass draw no hands
+  },
+  /** Is this falling stick still in the electrified zone under the arch? */
+  inZap(s) {
+    const L = this.L, m = this.mode;
+    if (!L || !L.zap || s.up || s.bounced || s.st !== ST.FALL || m === 'tutorial' || m === 'attract' || m === 'cinema') return false;
+    return (s.y - s.y0) / Math.max(1, V.fy - V.len - s.y0) < CFG.zap.zone * (this.assist ? .5 : 1);
+  },
+  zap(s, px, py) {
+    const u = V.u;
+    if (this.combo) { this.combo = 0; HUD.combo(); }
+    this.zaps = (this.zaps || 0) + 1; s.zf = .3;
+    FX.burst(px, py, '#7dd3fc', 14, 280 * u, 0, .35); FX.burst(px, py, '#ffffff', 6, 200 * u, 0, .25); FX.ring(px, py, '#7dd3fc', 34 * u, .25, 3 * u);
+    FX.text(px, py - 30 * u, t('zap'), '#7dd3fc', 30 * u, LANG === 'ar');
+    Glove.whiff(px, py); Sound.play('zap'); Haptics.buzz(35); this.shake = Math.max(this.shake, .25);
   },
   grab(s, py) {
     const u = V.u, len = V.len, cx = s.x, top = s.y;
@@ -4741,6 +4785,7 @@ const Preview = {
       g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(88, 30); g.lineTo(112, 30); g.lineTo(100, 12); g.closePath(); g.fill();
       g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(100, 120, 56, 8, 0, 0, 7); g.fill();
     }
+    else if (k === 'zap') { g.strokeStyle = '#94a3b8'; g.lineWidth = 6; g.beginPath(); g.arc(100, 150, 140, Math.PI * 1.32, Math.PI * 1.68); g.stroke(); glow(100, 40, '#7dd3fc', 44); S(100, 14, COLORS.b.hex); g.lineWidth = 3; g.strokeStyle = '#0ea5e9'; [-1, 1].forEach(d => { g.beginPath(); g.moveTo(100 + d * 12, 10); for (let i = 1; i <= 6; i++) g.lineTo(100 + d * (12 + (i % 2 ? 6 : 1)), 10 + i * 14); g.stroke(); }); g.fillStyle = '#f87171'; g.font = '400 34px Lalezar, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('✋', 150, 40); g.fillText('✗', 172, 22); g.fillStyle = '#4ade80'; g.fillText('✋', 52, 112); g.fillText('✓', 30, 96); g.strokeStyle = 'rgba(125,211,252,.6)'; g.setLineDash([5, 5]); g.beginPath(); g.moveTo(10, 78); g.lineTo(190, 78); g.stroke(); g.setLineDash([]); }
     else if (k === 'flash') { S(70, 26, COLORS.b.hex); S(124, 30, COLORS.r.hex); const fr = g.createRadialGradient(164, 22, 2, 164, 22, 170); fr.addColorStop(0, 'rgba(255,255,255,1)'); fr.addColorStop(.3, 'rgba(255,255,255,.88)'); fr.addColorStop(1, 'rgba(255,255,255,.2)'); g.fillStyle = fr; g.fillRect(0, 0, w, h); g.fillStyle = '#0b0e14'; g.fillRect(150, 12, 32, 20); g.fillStyle = '#fef9c3'; g.beginPath(); g.arc(160, 22, 6, 0, 7); g.fill(); g.fillStyle = '#fde047'; g.font = '400 30px Lalezar, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⚡', 30, 108); }
     else if (k === 'dark') { g.fillStyle = '#02030a'; g.fillRect(0, 0, w, h); glow(100, 68, COLORS.b.hex, 40); S(100, 28, COLORS.b.hex); }
     else { glow(100, 70, '#ef4444', 60); drawBossBot(g, 100, 122, 1.12, { t: .4, hitT: 0, enraged: false, throwT: 0, laughT: 0, max: 1, hp: () => 1 }); }
