@@ -339,6 +339,7 @@ textarea{width:100%;min-height:140px;border-radius:12px;border:1px solid var(--c
 #wcard.on{animation:wcard 2.3s ease-out forwards}
 #wcard small{display:block;font-weight:800;font-size:.8rem;letter-spacing:.22em;color:#fff;opacity:.9;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 #wcard b{display:block;font-family:var(--f-disp);font-weight:400;font-size:2.5rem;line-height:1.1;color:#fff;text-shadow:0 0 6px var(--wc),0 0 18px var(--wc),0 0 38px var(--wc)}
+@media (max-height:700px){#wcard{top:calc(var(--safe-t) + 21%)}#wcard b{font-size:1.9rem}}
 @keyframes wcard{0%{opacity:0;transform:scale(.94)}7%{opacity:1}11%{opacity:.25}15%{opacity:1}19%{opacity:.5}25%,82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.03)}}
 .sn.lock.devo{outline:2px dashed #f59e0b;outline-offset:2px;opacity:1}
 .vbtn{display:block;width:100%;background:none;border:0;padding:12px 8px;font:inherit;font-size:.75rem;color:var(--c-dim);cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
@@ -508,7 +509,7 @@ input[type=range]{height:44px}
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '2.11.1';
+const VERSION = '1.0.0';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
@@ -550,13 +551,16 @@ const CFG = {
   review: { first: 3, gap: [10, 18], days: 2, max: 5 },              // Play rating card: first after a 2+ star win from level 3, then every 10-18 levels (2+ days apart), at most 5 times
   cat: { from: 17, every: [16, 28], speed: 44, saves: 1, goldCoins: 5 },
   special: {                                            // special level types by position inside a world
-    survive: { idx: 7, fromWorld: 1, base: 22, perWorld: 2 },
+    survive: { idx: 7, fromWorld: 1, base: 14, perWorld: 2 },   // seconds = base + world × perWorld; was 22 + 2w (2.11.1): the timer ran ~1.6× longer than a regular level next to it, a 20-35 point win-rate cliff in the balance sim
     goldRain: { idx: 11, fromWorld: 2, chance: .18, goalMul: 1.1 },
     dark: { idx: 13, fromWorld: 3 },
+    flash: { idx: 9, fromWorld: 1, first: 2.2, every: [3, 5], charge: .5, fade: .75, hold: .24, peak: .97, peakAssist: .8, peakReduced: .55 },   // camera flash: the lens glows, then a white burst blinds the screen; never more than one flash per 3 s (photosensitivity)
   },
   boss: {                                               // twists per world boss (index = world)
     twists: [['rapid'], ['fake'], ['blackout'], ['swap'], ['rapid', 'enrage'], ['fake', 'blackout'], ['swap', 'enrage'], ['blackout', 'rapid'], ['fake', 'swap'], ['rapid', 'fake', 'blackout', 'swap', 'enrage']],
-    rapidEvery: 6, rapidCount: 2, fakeChance: .16, blackEvery: 7, blackFor: 1.4, swapEvery: 4, enrageG: 1.25, enrageItv: .8,
+    rapidEvery: 6, rapidCount: 2, fakeChance: .16, blackEvery: 7, blackFor: 1.4, swapEvery: 6, swapGoal: 4, enrageG: 1.15, enrageItv: .9,
+    // balance pass after 2.11.1 (sim: boss 60 novice 9% vs ~45% before it, boss 105 average 27% vs ~70%): swapEvery 4 -> 6,
+    // swap bosses need swapGoal fewer catches (no boss bonus on top of the swap twist), enrage 1.25/.8 -> 1.15/.9
   },
   missions: { perDay: 3, allBonus: 50 },
   wind: { force: 34, every: [4, 8] },                   // sideways drift (px × u / s) and seconds between gusts
@@ -652,6 +656,7 @@ const INTROS = [
   { n: CFG.special.survive.fromWorld * PER_WORLD + CFG.special.survive.idx, key: 'survive' },
   { n: CFG.special.goldRain.fromWorld * PER_WORLD + CFG.special.goldRain.idx, key: 'goldRain' },
   { n: CFG.special.dark.fromWorld * PER_WORLD + CFG.special.dark.idx, key: 'dark' },
+  { n: CFG.special.flash.fromWorld * PER_WORLD + CFG.special.flash.idx, key: 'flash' },
   { n: CFG.unlock.twoTone, key: 'twoTone' }, { n: CFG.unlock.wind, key: 'wind' }, { n: CFG.unlock.rise, key: 'rise' },
 ];
 
@@ -778,7 +783,7 @@ const STR = {
     sInfo: 'ℹ️ معلومات', sTut: 'التعليمات', sChangelog: 'سجل التغييرات', version: 'الإصدار {0}',
     exportT: 'تصدير التقدّم', exportD: 'انسخ النص واحفظه بمكان آمن. بتقدر تستورده على أي جهاز.', copy: 'نسخ', copied: 'تم النسخ ✓',
     importT: 'استيراد التقدّم', importD: 'الصق نص التصدير هون:', doImport: 'استيراد', importBad: 'النص مش صالح', importOk: 'تم استيراد التقدّم ✓', importConfirm: 'رح يستبدل تقدّمك الحالي بالكامل. متأكد؟',
-    reset1: 'متأكد إنك بدك تمسح كل التقدّم؟', reset2: 'آخر تحذير! النجوم والعملات والإنجازات والمشتريات رح تنحذف نهائياً.', resetYes: 'نعم، كمّل', resetFinal: 'امسح كل شي', resetDone: 'تم مسح التقدّم', cancel: 'إلغاء', ok: 'تمام', confirmT: 'تأكيد',
+    reset1: 'متأكد إنك بدك تمسح كل التقدّم؟', reset2: 'آخر تحذير! النجوم والعملات والإنجازات والمشتريات رح تنمسح. (بنضل نحتفظ بنسخة احتياطية بسجل الحفظ إذا غيّرت رأيك.)', resetYes: 'نعم، كمّل', resetFinal: 'امسح كل شي', resetDone: 'تم مسح التقدّم', cancel: 'إلغاء', ok: 'تمام', confirmT: 'تأكيد',
     tStick: 'العصي', tPlatform: 'المنصة', tArch: 'القوس', tBg: 'الخلفيات', equip: 'استخدم', equipped: 'مُستخدم ✓', noCoins: 'ما معك عملات كافية', bought: 'اشتريت {0}!',
     it_stick_classic: 'كلاسيك', it_stick_neon: 'نيون', it_stick_wood: 'خشب', it_stick_ice: 'جليد', it_stick_gold: 'ذهب',
     it_platform_classic: 'سودا كلاسيك', it_platform_neon: 'حلقة نيون', it_platform_chrome: 'كروم', it_platform_holo: 'هولوغرام',
@@ -821,7 +826,7 @@ const STR = {
     petPick: 'اختار', petOn: 'معك ✓', petName: 'الاسم', petAcc: 'الإكسسوارات', petSave: 'كواك! كمان مرة!', petCalm: 'روّق…', it_pet_none: 'بدون', it_pet_bow: 'فيونكة',
     it_pet_collar: 'طوق', it_pet_party: 'طاقية حفلة', it_pet_crown: 'تاج',
     rotate: 'لفّ جوالك بالطول عشان تلعب',
-    clog: [['2.11.1', 'إيد متحركة بشاشة البداية، عصي حياة بدل القلوب، رمية احتفال بعصا الفوز (نجمتين أو أكثر)، زنبركات النطّ كقوة جديدة من المرحلة 3، ونافذة تقييم Google Play. وشلنا بيبو الروبوت، وصار حيوانك الأليف مكانه. ومن المرحلة 18 في عصي بتهتز وما بتنزل.'], ['2.10.0', 'يد واقعية بتمسك العصا وبترفعها، أغاني جديدة، الخطوط صارت جوّا اللعبة (بتشتغل بدون إنترنت)، وما في ولا كلمة عربية لما تكون اللعبة بالإنجليزي.'], ['2.9.0', 'ثلاث أغاني حماسية جديدة للمراحل: إلكترونية، ودبكة بإيقاع الدربكة، وسريعة مشرقة، موزّعة على المراحل وبتسرع مع التقدّم.'], ['2.8.1', 'لمس أعدل جنب العصي الغلط والحيوانات، زر الإيقاف بيشتغل مع إصبعين، الزعيم الأول أسهل مع المساعدة الذكية، والمطر الذهبي ما عاد هدية ببلاش.'], ['2.8.0', 'لمس أدق (ما عاد تخسر قلب وإنت ضاغط صح)، صعوبة متدرّجة أكثر وإيقاع أسرع، المنصات رجعت للمتجر، والشاشات الصغيرة صارت مرتبة.'], ['2.7.0', 'رفاق حيوانات: اختار قطة أو جرو أو بطّة أو أرنب يتمشّى معك، سمّيه، ولبّسه إكسسوارات. وكل واحد إله مهارة بتساعدك.'], ['2.6.0', 'كل مرحلة إلها اسم خاص بيضوي بالنيون على عمود الماكينة، وزر وضع المطوّر صار بيستجيب على كل التلفونات.'], ['2.5.0', 'كل عالم إله قوس ومنصة بتصميمه الخاص، وقطط وجراوي وبط وأرانب بتتمشّى تحت العصي، وشلنا اللافتات المكتوبة من المدينة عشان العصي تبيّن أوضح.'], ['2.4.1', 'رسومات أوضح على التلفون، لعب أنعم بدون تقطيع، وإيد وحدة بس لما تلمس بأكثر من إصبع.'], ['2.4.0', 'ملف لاعب فيه خبرة ومستويات وألقاب ومسار جوايز ببلاش، ألبوم ملصقات، ميكانيكيات جديدة (عصي بلونين، هوا، عصي طالعة)، مساعدة ذكية، مناسبة فوانيس رمضان وهدية العيد، وموسيقى بتعلى مع الكومبو وحركة أنعم.'], ['2.3.0', 'الثيم الافتراضي صار نهار، وسجل حفظ فيه نسخ احتياطية تلقائية واسترجاع وسجل للتقدّم.'], ['2.2.0', 'عرض تعريفي أول مرة، خريطة مراحل بطريق متعرّج، 6 ثيمات (الغروب افتراضي)، روابط تحدّي للأصحاب، منافسين آليين معلنين، و5 لغات جديدة.'], ['2.1.0', 'لمس دقيق مع قفاز بيمسك العصا، مسكة سريعة، توقف لحظي عند الضربة، درون بقوى خاصة، بسّة الحارة، زعماء إلهم روبوت وحركات خاصة، مراحل صمود ومطر ذهبي وظلام، مهام يومية، إكسسوارات بيبو، عدّاد FPS.'], ['2.0.0', 'إعادة بناء كاملة: قائمة رئيسية، 4 أنماط لعب، متجر، 26 إنجاز، إحصائيات، صدارة محلية، إعدادات كاملة، موسيقى مولّدة لكل عالم، شخصية بيبو، مدينة أركيد متحركة، تعليمات تفاعلية، PWA.'], ['1.0.0', 'النسخة الأولى: 150 مرحلة، خريطة ونجوم، كومبو.']],
+    clog: [['1.0.0', 'أول إطلاق: 150 مرحلة في 10 عوالم نيون وزعيم كل 15 مرحلة، أوضاع لا نهائي والتحدي اليومي والتمرين، حيوانات رفيقة إلها مهارات، زنبركات، مراحل فلاش الكاميرا ⚡، متجر وألبوم ملصقات وإنجازات — وكلها بتشتغل بدون نت.']],
     gift: 'المكافأة', mins: '{0} د', hours: '{0} س {1} د',
     pw_spring: 'زنبركات!', pw_heart: '+1 ❤️', pw_slow: 'إبطاء!', pw_magnet: 'مغناطيس!', pw_x2: 'نقاط ×2', quick: 'سريع!', catSave: 'البسّة رجّعتها! 🐾', enraged: 'الزعيم عصّب! 😡',
     bossName: 'زعيم {0}', hudSurvive: 'صمود · {0} ث', survivedN: 'صمدت {0} من {1} ثانية',
@@ -829,6 +834,7 @@ const STR = {
     in_spring: 'زنبركات النطّ', in_springD: 'كل شوي بيجيك درون شايل زنبركات، اكبس عليه! لمدة 10 ثواني العصي اللي بدك إياها بترتد لفوق بدل ما توقع على الأرض، فبتصير معك فرصة تانية تمسكها.',
     in_drone: 'الدرون والقوى الخاصة', in_droneD: 'كل شوي بيمرق درون شايل قوة خاصة: قلب، إبطاء، مغناطيس أو نقاط ×2. المسه عشان تاخدها!',
     in_feint: 'اهتزاز مخادع', in_feintD: 'انتبه: أحياناً كذا عصا بتهتز مع بعض، بس وحدة بس بتنزل فعلاً. لا تستعجل، استنى لحد ما تنزل!',
+    in_flash: 'فلاش الكاميرا ⚡', in_flashD: 'كاميرا الماكينة بتضرب فلاش قوي كل كم ثانية وبتعمي الشاشة لحظة. لما تشوف العدسة بتلمع، تذكّر وين العصا وامسكها!',
     in_cat: 'بسّة الحارة', in_catD: 'بسّة بتتمشى على المنصة. إذا وقعت عصا الهدف عليها بترجّعها لفوق مرة وحدة بكل مرحلة، والذهبية عليها بتعطيك عملات. ولو لمستها… بتخرخر 😺',
     in_survive: 'مرحلة صمود ⏳', in_surviveD: 'ما في عدد مسكات مطلوب — بس اصمد لآخر الوقت بدون ما تخسر كل قلوبك.',
     in_goldRain: 'مطر ذهبي 💰', in_goldRainD: 'العصي الذهبية بتنزل كتير بهالمرحلة — كل وحدة بنقطتين وبتبطّئ الوقت!',
@@ -842,7 +848,7 @@ const STR = {
     you: 'إنت', bot: 'منافس آلي', rivalDay: '🤖 منافس اليوم: {0} · {1}', rivalBeat: '🤖 تغلّبت على منافس اليوم {0}!', rivalLost: '🤖 منافس اليوم {0} سجّل {1}',
     rivals: ['نيونو', 'فولت', 'بيكسل', 'كوميت', 'توربو', 'لونا', 'بلايز', 'بايت'], sName: '👤 اسمك',
     sTheme: '🖌️ الثيم', th_sunset: 'غروب', th_day: 'نهار', th_night: 'ليل نيون', th_retro: 'ريترو', th_ocean: 'محيط', th_contrast: 'تباين عالي', th_auto: 'تلقائي',
-    cine1: 'أهلاً بالعصي الساقطة! 🕹️ خليني أفرجيك كيف بتنلعب.', cine2: 'شايف القوس المضوّي؟ لونه هو لون العصا اللي لازم تمسكها.', cine3: 'العصا بتهتز… وبعدين بتنزل! المسها قبل ما توصل الأرض 👆', cine4: 'لون مختلف؟ لا تلمسها ✋ خلّيها تقع.', cine5: 'مسكات ورا بعض = كومبو ونقاط أكثر 🔥 وعندك {0} قلوب ❤️', cine6: 'جاهز؟ يلا نلعب! 🎮', sIntro: 'العرض التعريفي',
+    cine1: 'أهلاً بالعصي الساقطة! 🕹️ خليني أفرجيك كيف بتنلعب.', cine2: 'شايف القوس المضوّي؟ لونه هو لون العصا اللي لازم تمسكها.', cine3: 'العصا بتهتز... وبعدين بتنزل! المسها قبل ما توصل الأرض 👆', cine4: 'لون مختلف؟ لا تلمسها ✋ خلّيها تقع.', cine5: 'مسكات ورا بعض = كومبو ونقاط أكثر 🔥 وعندك {0} قلوب ❤️', cine6: 'جاهز؟ يلا نلعب! 🎮', sIntro: 'العرض التعريفي',
     sFps: 'عرض عدّاد FPS', st_quick: 'مسكات سريعة', st_power: 'قوى خاصة', st_missions: 'مهام مكتملة', st_cat: 'إنقاذات البسّة',
   },
   en: {
@@ -873,7 +879,7 @@ const STR = {
     sInfo: 'ℹ️ Info', sTut: 'Tutorial', sChangelog: 'Changelog', version: 'Version {0}',
     exportT: 'Export progress', exportD: 'Copy this text and keep it safe. You can import it on any device.', copy: 'Copy', copied: 'Copied ✓',
     importT: 'Import progress', importD: 'Paste your export text here:', doImport: 'Import', importBad: 'That text is not valid', importOk: 'Progress imported ✓', importConfirm: 'This replaces all your current progress. Sure?',
-    reset1: 'Really erase all progress?', reset2: 'Last warning! Stars, coins, achievements and purchases will be deleted forever.', resetYes: 'Yes, continue', resetFinal: 'Erase everything', resetDone: 'Progress erased', cancel: 'Cancel', ok: 'OK', confirmT: 'Confirm',
+    reset1: 'Really erase all progress?', reset2: 'Last warning! Stars, coins, achievements and purchases will be erased. (A backup stays in Save history in case you change your mind.)', resetYes: 'Yes, continue', resetFinal: 'Erase everything', resetDone: 'Progress erased', cancel: 'Cancel', ok: 'OK', confirmT: 'Confirm',
     tStick: 'Sticks', tPlatform: 'Platform', tArch: 'Arch', tBg: 'Backdrops', equip: 'Use', equipped: 'In use ✓', noCoins: 'Not enough coins', bought: 'You bought {0}!',
     it_stick_classic: 'Classic', it_stick_neon: 'Neon', it_stick_wood: 'Wood', it_stick_ice: 'Ice', it_stick_gold: 'Gold',
     it_platform_classic: 'Classic black', it_platform_neon: 'Neon ring', it_platform_chrome: 'Chrome', it_platform_holo: 'Hologram',
@@ -916,7 +922,7 @@ const STR = {
     petPick: 'Choose', petOn: 'With you ✓', petName: 'Name', petAcc: 'Accessories', petSave: 'Quack! Again!', petCalm: 'Calm…', it_pet_none: 'None',
     it_pet_bow: 'Bow', it_pet_collar: 'Collar', it_pet_party: 'Party hat', it_pet_crown: 'Crown',
     rotate: 'Turn your phone upright to play',
-    clog: [['2.11.1', 'An animated hand on the title screens, life sticks instead of hearts, a celebration throw with the winning stick (2+ stars), a bouncy springs power-up from level 3, and the Google Play rating card. Bebo the robot is gone; your pet takes his place. From level 18 some sticks shake but never fall.'], ['2.10.0', 'A realistic hand that grips and lifts the stick, built-in fonts (works fully offline), and no Arabic text when the game is in English.'], ['2.9.0', 'Three new upbeat level songs (electro, a darbuka dabke and a bright breakbeat), spread over the levels and a little faster as you progress.'], ['2.8.1', 'Fairer taps near decoys and pets, Pause works with two fingers, the first boss is easier with smart assist, and gold rain is no longer a free pass.'], ['2.8.0', 'Fairer touch (no more lost hearts on correct taps), a smoother difficulty curve and faster pace, platforms are back in the shop, and small screens fit properly.'], ['2.7.0', 'Pet companions: pick a cat, puppy, duck or bunny to walk with you, name it and dress it up. Each one has a skill that helps you.'], ['2.6.0', 'Every level has its own name glowing in neon on the machine column; the developer-mode tap now works on every phone.'], ['2.5.0', 'Every world has its own arch and platform; cats, puppies, ducks and rabbits stroll under the sticks; the city signs are gone so the sticks are easier to see.'], ['2.4.1', 'Sharper graphics on phones, smoother play without hitches, and a single hand when you touch with several fingers.'], ['2.4.0', 'Player profile with XP, levels, titles and a free reward track; sticker album; new mechanics (two-tone, wind, rising sticks); smart assist; Ramadan lantern event and Eid gift; music that grows with your combo and smoother animation.'], ['2.3.0', 'Day is now the default theme; new save history with automatic backups, restore and a progress log.'], ['2.2.0', 'First-run intro, saga-style level map, 6 themes (Sunset by default), friend challenge links, labelled rival bots and 5 new languages.'], ['2.1.0', 'Precise touch with a grabbing glove, quick catches, hit-stop, power-up drones, the street cat, boss robots with twists, survival / golden rain / lights-out levels, daily missions, Bebo accessories, FPS counter.'], ['2.0.0', 'Full rebuild: main menu, 4 game modes, shop, 26 achievements, stats, local leaderboard, full settings, generated music per world, Bebo the mascot, animated arcade city, interactive tutorial, PWA.'], ['1.0.0', 'First version: 150 levels, map and stars, combo.']],
+    clog: [['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements — all playable offline.']],
     gift: 'Reward', mins: '{0}m', hours: '{0}h {1}m',
     pw_spring: 'Springs!', pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', catSave: 'The cat saved it! 🐾', enraged: 'The boss is furious! 😡',
     bossName: 'Boss of {0}', hudSurvive: 'Survive · {0}s', survivedN: 'Survived {0} of {1} s',
@@ -924,6 +930,7 @@ const STR = {
     in_spring: 'Bouncy springs', in_springD: 'Now and then a drone brings springs. Tap it! For 10 seconds, the sticks you need bounce back up instead of hitting the floor — a second chance to catch them.',
     in_drone: 'Drones & powers', in_droneD: 'Now and then a drone flies by carrying a power: a heart, slow-mo, a magnet or double points. Tap it to grab it!',
     in_feint: 'Fake shakes', in_feintD: 'Watch out: sometimes several sticks shake, but only one really falls. Don’t tap too soon — wait until it drops!',
+    in_flash: 'Camera flash ⚡', in_flashD: 'The machine’s camera fires a bright flash every few seconds and blinds the screen for a moment. When the lens starts to glow, remember where the stick is and grab it!',
     in_cat: 'The street cat', in_catD: 'A cat strolls across the platform. If a target stick lands on it, it bats it back up once per level, and a golden stick on it gives coins. Pet it… it purrs 😺',
     in_survive: 'Survival level ⏳', in_surviveD: 'No catch goal — just survive until the timer ends without losing all your hearts.',
     in_goldRain: 'Golden rain 💰', in_goldRainD: 'Golden sticks fall all the time here — each is worth two and slows time!',
@@ -937,7 +944,7 @@ const STR = {
     you: 'You', bot: 'Bot', rivalDay: '🤖 Today’s rival: {0} · {1}', rivalBeat: '🤖 You beat today’s rival {0}!', rivalLost: '🤖 Today’s rival {0} scored {1}',
     rivals: ['Neono', 'Volt', 'Pixel', 'Comet', 'Turbo', 'Luna', 'Blaze', 'Byte'], sName: '👤 Your name',
     sTheme: '🖌️ Theme', th_sunset: 'Sunset', th_day: 'Day', th_night: 'Neon night', th_retro: 'Retro', th_ocean: 'Ocean', th_contrast: 'High contrast', th_auto: 'Auto',
-    cine1: 'Welcome to Falling Sticks! 🕹️ Let me show you how it works.', cine2: 'See the glowing arch? Its colour is the stick you must catch.', cine3: 'A stick shakes… then drops! Tap it before it hits the floor 👆', cine4: 'Different colour? Don’t touch it ✋ Let it fall.', cine5: 'Catch in a row for combos and more points 🔥 You have {0} hearts ❤️', cine6: 'Ready? Let’s play! 🎮', sIntro: 'Intro video',
+    cine1: 'Welcome to Falling Sticks! 🕹️ Let me show you how it works.', cine2: 'See the glowing arch? Its colour is the stick you must catch.', cine3: 'A stick shakes... then drops! Tap it before it hits the floor 👆', cine4: 'Different colour? Don’t touch it ✋ Let it fall.', cine5: 'Catch in a row for combos and more points 🔥 You have {0} hearts ❤️', cine6: 'Ready? Let’s play! 🎮', sIntro: 'Intro video',
     sFps: 'Show FPS counter', st_quick: 'Quick catches', st_power: 'Drone powers', st_missions: 'Missions done', st_cat: 'Cat saves',
   },
 };
@@ -996,7 +1003,7 @@ STR.fr = {
     sInfo: 'ℹ️ Infos', sTut: 'Tutoriel', sChangelog: 'Nouveautés', version: 'Version {0}',
     exportT: 'Exporter la progression', exportD: 'Copie ce texte et garde-le bien. Tu peux l’importer sur n’importe quel appareil.', copy: 'Copier', copied: 'Copié ✓',
     importT: 'Importer la progression', importD: 'Colle ton texte d’export ici :', doImport: 'Importer', importBad: 'Ce texte n’est pas valide', importOk: 'Progression importée ✓', importConfirm: 'Ça remplace toute ta progression actuelle. Tu confirmes ?',
-    reset1: 'Vraiment tout effacer ?', reset2: 'Dernier avertissement ! Étoiles, pièces, succès et achats seront supprimés pour toujours.', resetYes: 'Oui, continuer', resetFinal: 'Tout effacer', resetDone: 'Progression effacée', cancel: 'Annuler', ok: 'OK', confirmT: 'Confirmer',
+    reset1: 'Vraiment tout effacer ?', reset2: 'Dernier avertissement ! Étoiles, pièces, succès et achats seront effacés. (Une sauvegarde reste dans l’historique si tu changes d’avis.)', resetYes: 'Oui, continuer', resetFinal: 'Tout effacer', resetDone: 'Progression effacée', cancel: 'Annuler', ok: 'OK', confirmT: 'Confirmer',
     tStick: 'Bâtons', tPlatform: 'Plateforme', tArch: 'Arche', tBg: 'Décors', equip: 'Équiper', equipped: 'Équipé ✓', noCoins: 'Pas assez de pièces', bought: 'Tu as acheté {0} !',
     it_stick_classic: 'Classique', it_stick_neon: 'Néon', it_stick_wood: 'Bois', it_stick_ice: 'Glace', it_stick_gold: 'Or',
     it_platform_classic: 'Noir classique', it_platform_neon: 'Anneau néon', it_platform_chrome: 'Chrome', it_platform_holo: 'Hologramme',
@@ -1040,7 +1047,7 @@ STR.fr = {
     petLock: 'Débloqué au niveau {0}', petPick: 'Choisir', petOn: 'Avec toi ✓', petName: 'Nom', petAcc: 'Accessoires', petSave: 'Coin ! Encore !',
     petCalm: 'Calme…', it_pet_none: 'Aucun', it_pet_bow: 'Nœud', it_pet_collar: 'Collier', it_pet_party: 'Chapeau de fête', it_pet_crown: 'Couronne',
     rotate: 'Tourne ton téléphone en portrait pour jouer',
-    clog: [['2.11.1', 'Une main animée sur l’écran titre, des bâtons de vie à la place des cœurs, un lancer de fête avec le bâton gagnant (2 étoiles ou plus), le pouvoir ressorts dès le niveau 3 et la carte de note Google Play. Bebo le robot est parti : ton compagnon prend sa place. Dès le niveau 18, certains bâtons tremblent sans tomber.'], ['2.10.0', 'Une vraie main qui saisit et soulève le bâton, polices intégrées (fonctionne hors ligne) et plus de texte arabe quand le jeu est en anglais.'], ['2.9.0', 'Trois nouvelles musiques entraînantes pour les niveaux (électro, dabké à la darbouka et breakbeat lumineux), réparties sur les niveaux et un peu plus rapides au fil de la progression.'], ['2.8.1', 'Appuis plus justes près des leurres et des animaux, Pause marche à deux doigts, le premier boss est plus facile avec l’aide intelligente, et la pluie d’or n’est plus un cadeau.'], ['2.8.0', 'Toucher plus juste (plus de cœurs perdus sur un bon appui), difficulté mieux dosée et rythme plus rapide, les plateformes reviennent en boutique, et les petits écrans s’affichent bien.'], ['2.7.0', 'Compagnons : choisis un chat, un chiot, un canard ou un lapin, donne-lui un nom et des accessoires. Chacun a un talent qui t’aide.'], ['2.6.0', 'Chaque niveau a son propre nom qui brille en néon sur la colonne de la machine ; l’accès au mode développeur marche sur tous les téléphones.'], ['2.5.0', 'Chaque monde a son arche et sa plateforme ; chats, chiots, canards et lapins se promènent sous les bâtons ; les enseignes de la ville ont disparu pour mieux voir les bâtons.'], ['2.4.1', 'Graphismes plus nets sur téléphone, jeu plus fluide sans à-coups, et une seule main quand tu touches avec plusieurs doigts.'], ['2.4.0', 'Profil joueur avec XP, niveaux, titres et parcours de récompenses gratuit ; album d’autocollants ; nouvelles mécaniques (bicolores, vent, bâtons montants) ; aide intelligente ; événement des lanternes du Ramadan et cadeau de l’Aïd ; musique qui monte avec le combo et animations plus fluides.'], ['2.3.0', 'Le thème Jour devient le thème par défaut ; nouvel historique avec sauvegardes automatiques, restauration et journal de progression.'], ['2.2.0', 'Intro au premier lancement, carte des niveaux en chemin sinueux, 6 thèmes (Coucher de soleil par défaut), défis entre amis par lien, rivaux robots identifiés et 5 nouvelles langues.'], ['2.1.0', 'Toucher précis avec un gant attrapeur, prises rapides, arrêt sur impact, drones à pouvoirs, le chat des rues, robots boss avec surprises, niveaux survie / pluie d’or / lumières éteintes, missions du jour, accessoires pour Bebo, compteur FPS.'], ['2.0.0', 'Refonte complète : menu principal, 4 modes de jeu, boutique, 26 succès, stats, classement local, réglages complets, musique générée pour chaque monde, Bebo la mascotte, ville d’arcade animée, tutoriel interactif, PWA.'], ['1.0.0', 'Première version : 150 niveaux, carte et étoiles, combo.']],
+    clog: [['1.0.0', 'Première version : 150 niveaux dans 10 mondes néon avec un boss tous les 15 niveaux, modes Infini, Défi du jour et Entraînement, compagnons avec des talents, ressorts rebondissants, niveaux flash ⚡, boutique, album d’autocollants et succès — le tout hors ligne.']],
     gift: 'Récompense', mins: '{0} min', hours: '{0} h {1} min',
     pw_spring: 'Ressorts !', pw_heart: '+1 ❤️', pw_slow: 'Ralenti !', pw_magnet: 'Aimant !', pw_x2: 'Points doublés !', quick: 'Rapide !', catSave: 'Le chat l’a sauvé ! 🐾', enraged: 'Le boss est furieux ! 😡',
     bossName: 'Boss : {0}', hudSurvive: 'Survie · {0} s', survivedN: 'Survie : {0} s sur {1}',
@@ -1048,6 +1055,7 @@ STR.fr = {
     in_spring: 'Ressorts rebondissants', in_springD: 'De temps en temps, un drone apporte des ressorts. Touche-le ! Pendant 10 s, les bâtons que tu veux rebondissent au lieu de toucher le sol : une seconde chance de les attraper.',
     in_drone: 'Drones et pouvoirs', in_droneD: 'De temps en temps, un drone passe avec un pouvoir : un cœur, un ralenti, un aimant ou des points doublés. Touche-le pour l’attraper !',
     in_feint: 'Fausses secousses', in_feintD: 'Attention : parfois plusieurs bâtons tremblent, mais un seul tombe vraiment. Ne touche pas trop tôt, attends qu’il tombe !',
+    in_flash: 'Flash photo ⚡', in_flashD: 'La caméra de la machine lance un flash éblouissant toutes les quelques secondes. Quand l’objectif s’allume, retiens où est le bâton et attrape-le !',
     in_cat: 'Le chat des rues', in_catD: 'Un chat se balade sur la plateforme. Si un bâton cible tombe sur lui, il le renvoie en l’air une fois par niveau, et un bâton doré sur lui donne des pièces. Caresse-le… il ronronne 😺',
     in_survive: 'Niveau survie ⏳', in_surviveD: 'Pas d’objectif de prises — survis jusqu’à la fin du chrono sans perdre tous tes cœurs.',
     in_goldRain: 'Pluie d’or 💰', in_goldRainD: 'Ici, les bâtons dorés tombent sans arrêt — chacun compte double et ralentit le temps !',
@@ -1061,7 +1069,7 @@ STR.fr = {
     you: 'Toi', bot: 'Bot', rivalDay: '🤖 Rival du jour : {0} · {1}', rivalBeat: '🤖 Tu as battu {0}, le rival du jour !', rivalLost: '🤖 {0}, le rival du jour, a marqué {1}',
     rivals: ['Neono', 'Volt', 'Pixel', 'Comet', 'Turbo', 'Luna', 'Blaze', 'Byte'], sName: '👤 Ton nom',
     sTheme: '🖌️ Thème', th_sunset: 'Crépuscule', th_day: 'Jour', th_night: 'Nuit néon', th_retro: 'Rétro', th_ocean: 'Océan', th_contrast: 'Contraste élevé', th_auto: 'Auto',
-    cine1: 'Bienvenue dans Falling Sticks ! 🕹️ Je vais te montrer comment ça marche.', cine2: 'Tu vois l’arche lumineuse ? Sa couleur, c’est celle du bâton à attraper.', cine3: 'Un bâton tremble… puis tombe ! Tape dessus avant qu’il atteigne le sol 👆', cine4: 'Autre couleur ? N’y touche pas ✋ Laisse-le tomber.', cine5: 'Enchaîne les prises pour des combos et plus de points 🔥 Tu as {0} cœurs ❤️', cine6: 'Prêt ? C’est parti ! 🎮', sIntro: 'Vidéo d’intro',
+    cine1: 'Bienvenue dans Falling Sticks ! 🕹️ Je vais te montrer comment ça marche.', cine2: 'Tu vois l’arche lumineuse ? Sa couleur, c’est celle du bâton à attraper.', cine3: 'Un bâton tremble... puis tombe ! Tape dessus avant qu’il atteigne le sol 👆', cine4: 'Autre couleur ? N’y touche pas ✋ Laisse-le tomber.', cine5: 'Enchaîne les prises pour des combos et plus de points 🔥 Tu as {0} cœurs ❤️', cine6: 'Prêt ? C’est parti ! 🎮', sIntro: 'Vidéo d’intro',
     sFps: 'Afficher le compteur FPS', st_quick: 'Prises rapides', st_power: 'Pouvoirs de drone', st_missions: 'Missions terminées', st_cat: 'Sauvetages du chat',
   };
 STR.fr.achs = {
@@ -1107,7 +1115,7 @@ STR.es = {
     sInfo: 'ℹ️ Info', sTut: 'Tutorial', sChangelog: 'Novedades', version: 'Versión {0}',
     exportT: 'Exportar progreso', exportD: 'Copia este texto y guárdalo bien. Puedes importarlo en cualquier dispositivo.', copy: 'Copiar', copied: 'Copiado ✓',
     importT: 'Importar progreso', importD: 'Pega aquí tu texto exportado:', doImport: 'Importar', importBad: 'Ese texto no es válido', importOk: 'Progreso importado ✓', importConfirm: 'Esto reemplaza todo tu progreso actual. ¿Seguro?',
-    reset1: '¿De verdad quieres borrar todo el progreso?', reset2: '¡Última advertencia! Las estrellas, monedas, logros y compras se borrarán para siempre.', resetYes: 'Sí, continuar', resetFinal: 'Borrar todo', resetDone: 'Progreso borrado', cancel: 'Cancelar', ok: 'OK', confirmT: 'Confirmar',
+    reset1: '¿De verdad quieres borrar todo el progreso?', reset2: '¡Última advertencia! Se borrarán las estrellas, monedas, logros y compras. (Queda una copia en el historial por si cambias de idea.)', resetYes: 'Sí, continuar', resetFinal: 'Borrar todo', resetDone: 'Progreso borrado', cancel: 'Cancelar', ok: 'OK', confirmT: 'Confirmar',
     tStick: 'Palitos', tPlatform: 'Plataforma', tArch: 'Arco', tBg: 'Fondos', equip: 'Usar', equipped: 'En uso ✓', noCoins: 'No tienes suficientes monedas', bought: '¡Compraste {0}!',
     it_stick_classic: 'Clásico', it_stick_neon: 'Neón', it_stick_wood: 'Madera', it_stick_ice: 'Hielo', it_stick_gold: 'Oro',
     it_platform_classic: 'Negra clásica', it_platform_neon: 'Anillo neón', it_platform_chrome: 'Cromo', it_platform_holo: 'Holograma',
@@ -1152,7 +1160,7 @@ STR.es = {
     petLock: 'Se desbloquea en el nivel {0}', petPick: 'Elegir', petOn: 'Contigo ✓', petName: 'Nombre', petAcc: 'Accesorios', petSave: '¡Cuac! ¡Otra vez!',
     petCalm: 'Calma…', it_pet_none: 'Ninguno', it_pet_bow: 'Lazo', it_pet_collar: 'Collar', it_pet_party: 'Gorro de fiesta', it_pet_crown: 'Corona',
     rotate: 'Gira el móvil en vertical para jugar',
-    clog: [['2.11.1', 'Una mano animada en la pantalla de inicio, palitos de vida en vez de corazones, un lanzamiento de celebración con el palito ganador (2+ estrellas), el poder de resortes desde el nivel 3 y la tarjeta de valoración de Google Play. Bebo el robot se fue: tu mascota ocupa su lugar. Desde el nivel 18 algunos palitos tiemblan pero no caen.'], ['2.10.0', 'Una mano realista que agarra y levanta el palito, fuentes integradas (funciona sin conexión) y nada de texto árabe con el juego en inglés.'], ['2.9.0', 'Tres nuevas canciones animadas para los niveles (electro, dabke con darbuka y un breakbeat luminoso), repartidas por los niveles y algo más rápidas al avanzar.'], ['2.8.1', 'Toques más justos junto a señuelos y mascotas, Pausa funciona con dos dedos, el primer jefe es más fácil con la ayuda inteligente y la lluvia de oro ya no es un regalo.'], ['2.8.0', 'Toque más justo (ya no pierdes corazones al tocar bien), dificultad más gradual y ritmo más rápido, las plataformas vuelven a la tienda y las pantallas pequeñas se ven bien.'], ['2.7.0', 'Compañeros: elige un gato, cachorro, pato o conejo, ponle nombre y accesorios. Cada uno tiene una habilidad que te ayuda.'], ['2.6.0', 'Cada nivel tiene su propio nombre en neón sobre la columna de la máquina; el acceso al modo desarrollador funciona en todos los móviles.'], ['2.5.0', 'Cada mundo tiene su propio arco y plataforma; gatos, cachorros, patos y conejos pasean bajo los palitos; quitamos los letreros de la ciudad para ver mejor los palitos.'], ['2.4.1', 'Gráficos más nítidos en el móvil, juego más fluido sin tirones y una sola mano al tocar con varios dedos.'], ['2.4.0', 'Perfil de jugador con XP, niveles, títulos y ruta de premios gratis; álbum de pegatinas; nuevas mecánicas (bicolores, viento, palitos que suben); ayuda inteligente; evento de faroles de Ramadán y regalo de Eid; música que crece con el combo y animaciones más suaves.'], ['2.3.0', 'Día es ahora el tema por defecto; nuevo historial con copias automáticas, restauración y registro de progreso.'], ['2.2.0', 'Intro al primer inicio, mapa de niveles con camino sinuoso, 6 temas (Atardecer por defecto), retos a amigos por enlace, rivales bot identificados y 5 idiomas nuevos.'], ['2.1.0', 'Toque preciso con un guante que agarra, atrapadas rápidas, pausa de impacto, drones con poderes, el gato callejero, jefes robot con sorpresas, niveles de supervivencia / lluvia dorada / apagón, misiones diarias, accesorios para Bebo, contador de FPS.'], ['2.0.0', 'Reconstrucción completa: menú principal, 4 modos de juego, tienda, 26 logros, estadísticas, ranking local, ajustes completos, música generada para cada mundo, Bebo la mascota, ciudad arcade animada, tutorial interactivo, PWA.'], ['1.0.0', 'Primera versión: 150 niveles, mapa y estrellas, combo.']],
+    clog: [['1.0.0', 'Primera versión: 150 niveles en 10 mundos neón con un jefe cada 15 niveles, modos Infinito, Reto diario y Práctica, mascotas con habilidades, resortes saltarines, niveles con flash ⚡, tienda, álbum de pegatinas y logros, todo sin conexión.']],
     gift: 'Premio', mins: '{0} min', hours: '{0} h {1} min',
     pw_spring: '¡Resortes!', pw_heart: '+1 ❤️', pw_slow: '¡Cámara lenta!', pw_magnet: '¡Imán!', pw_x2: '¡Puntos dobles!', quick: '¡Rápido!', catSave: '¡El gato lo salvó! 🐾', enraged: '¡El jefe está furioso! 😡',
     bossName: 'Jefe de {0}', hudSurvive: 'Sobrevive · {0}s', survivedN: 'Sobreviviste {0} de {1} s',
@@ -1160,6 +1168,7 @@ STR.es = {
     in_spring: 'Resortes saltarines', in_springD: 'De vez en cuando un dron trae resortes. ¡Tócalo! Durante 10 s, los palitos que necesitas rebotan en vez de tocar el suelo: una segunda oportunidad para atraparlos.',
     in_drone: 'Drones y poderes', in_droneD: 'De vez en cuando pasa un dron con un poder: un corazón, cámara lenta, un imán o puntos dobles. ¡Tócalo para agarrarlo!',
     in_feint: 'Temblores falsos', in_feintD: 'Ojo: a veces tiemblan varios palitos, pero solo uno cae de verdad. No toques antes de tiempo, ¡espera a que caiga!',
+    in_flash: 'Flash de cámara ⚡', in_flashD: 'La cámara de la máquina lanza un flash cegador cada pocos segundos. Cuando el lente empiece a brillar, ¡recuerda dónde está el palito y atrápalo!',
     in_cat: 'El gato callejero', in_catD: 'Un gato pasea por la plataforma. Si un palito objetivo cae sobre él, lo devuelve hacia arriba una vez por nivel, y un palito dorado sobre él da monedas. Acarícialo… ¡ronronea! 😺',
     in_survive: 'Nivel de supervivencia ⏳', in_surviveD: 'Sin meta de atrapadas: solo sobrevive hasta que acabe el tiempo sin perder todos tus corazones.',
     in_goldRain: 'Lluvia dorada 💰', in_goldRainD: 'Aquí caen palitos dorados todo el tiempo. ¡Cada uno vale por dos y frena el tiempo!',
@@ -1173,7 +1182,7 @@ STR.es = {
     you: 'Tú', bot: 'Bot', rivalDay: '🤖 Rival de hoy: {0} · {1}', rivalBeat: '🤖 ¡Venciste al rival de hoy, {0}!', rivalLost: '🤖 El rival de hoy, {0}, hizo {1}',
     rivals: ['Neono', 'Volt', 'Pixel', 'Comet', 'Turbo', 'Luna', 'Blaze', 'Byte'], sName: '👤 Tu nombre',
     sTheme: '🖌️ Tema', th_sunset: 'Atardecer', th_day: 'Día', th_night: 'Noche neón', th_retro: 'Retro', th_ocean: 'Océano', th_contrast: 'Alto contraste', th_auto: 'Auto',
-    cine1: '¡Bienvenido a Falling Sticks! 🕹️ Te muestro cómo funciona.', cine2: '¿Ves el arco brillante? Su color es el del palito que debes atrapar.', cine3: 'Un palito tiembla… ¡y cae! Tócalo antes de que llegue al suelo 👆', cine4: '¿Otro color? No lo toques ✋ Déjalo caer.', cine5: 'Atrapa seguido para hacer combos y ganar más puntos 🔥 Tienes {0} corazones ❤️', cine6: '¿Listo? ¡A jugar! 🎮', sIntro: 'Video de intro',
+    cine1: '¡Bienvenido a Falling Sticks! 🕹️ Te muestro cómo funciona.', cine2: '¿Ves el arco brillante? Su color es el del palito que debes atrapar.', cine3: 'Un palito tiembla... ¡y cae! Tócalo antes de que llegue al suelo 👆', cine4: '¿Otro color? No lo toques ✋ Déjalo caer.', cine5: 'Atrapa seguido para hacer combos y ganar más puntos 🔥 Tienes {0} corazones ❤️', cine6: '¿Listo? ¡A jugar! 🎮', sIntro: 'Video de intro',
     sFps: 'Mostrar contador de FPS', st_quick: 'Atrapadas rápidas', st_power: 'Poderes de dron', st_missions: 'Misiones hechas', st_cat: 'Rescates del gato',
   };
 STR.es.achs = {
@@ -1219,7 +1228,7 @@ STR.pt = {
     sInfo: 'ℹ️ Info', sTut: 'Tutorial', sChangelog: 'Novidades', version: 'Versão {0}',
     exportT: 'Exportar progresso', exportD: 'Copie este texto e guarde bem. Você pode importá-lo em qualquer aparelho.', copy: 'Copiar', copied: 'Copiado ✓',
     importT: 'Importar progresso', importD: 'Cole aqui o texto exportado:', doImport: 'Importar', importBad: 'Esse texto não é válido', importOk: 'Progresso importado ✓', importConfirm: 'Isso substitui todo o seu progresso atual. Tem certeza?',
-    reset1: 'Apagar mesmo todo o progresso?', reset2: 'Último aviso! Estrelas, moedas, conquistas e compras serão apagadas para sempre.', resetYes: 'Sim, continuar', resetFinal: 'Apagar tudo', resetDone: 'Progresso apagado', cancel: 'Cancelar', ok: 'OK', confirmT: 'Confirmar',
+    reset1: 'Apagar mesmo todo o progresso?', reset2: 'Último aviso! Estrelas, moedas, conquistas e compras serão apagadas. (Fica um backup no histórico caso você mude de ideia.)', resetYes: 'Sim, continuar', resetFinal: 'Apagar tudo', resetDone: 'Progresso apagado', cancel: 'Cancelar', ok: 'OK', confirmT: 'Confirmar',
     tStick: 'Bastões', tPlatform: 'Plataforma', tArch: 'Arco', tBg: 'Fundos', equip: 'Usar', equipped: 'Em uso ✓', noCoins: 'Moedas insuficientes', bought: 'Você comprou {0}!',
     it_stick_classic: 'Clássico', it_stick_neon: 'Neon', it_stick_wood: 'Madeira', it_stick_ice: 'Gelo', it_stick_gold: 'Ouro',
     it_platform_classic: 'Preto clássico', it_platform_neon: 'Anel neon', it_platform_chrome: 'Cromo', it_platform_holo: 'Holograma',
@@ -1263,7 +1272,7 @@ STR.pt = {
     petLock: 'Desbloqueia no nível {0}', petPick: 'Escolher', petOn: 'Com você ✓', petName: 'Nome', petAcc: 'Acessórios', petSave: 'Quac! De novo!',
     petCalm: 'Calma…', it_pet_none: 'Nenhum', it_pet_bow: 'Laço', it_pet_collar: 'Coleira', it_pet_party: 'Chapéu de festa', it_pet_crown: 'Coroa',
     rotate: 'Vire o celular na vertical para jogar',
-    clog: [['2.11.1', 'Uma mão animada na tela inicial, palitos de vida no lugar dos corações, um arremesso de comemoração com o palito da vitória (2+ estrelas), o poder das molas desde o nível 3 e o cartão de avaliação do Google Play. O robô Bebo saiu: seu bichinho fica no lugar dele. A partir do nível 18 alguns palitos tremem mas não caem.'], ['2.10.0', 'Uma mão realista que agarra e levanta o bastão, fontes embutidas (funciona offline) e nenhum texto em árabe com o jogo em inglês.'], ['2.9.0', 'Três novas músicas animadas para os níveis (eletrônica, dabke com darbuka e um breakbeat brilhante), distribuídas pelos níveis e um pouco mais rápidas conforme você avança.'], ['2.8.1', 'Toques mais justos perto de iscas e bichinhos, Pausa funciona com dois dedos, o primeiro chefe fica mais fácil com a ajuda inteligente e a chuva de ouro não é mais de graça.'], ['2.8.0', 'Toque mais justo (sem perder corações ao tocar certo), dificuldade mais gradual e ritmo mais rápido, as plataformas voltaram à loja e as telas pequenas ficam certas.'], ['2.7.0', 'Companheiros: escolha um gato, filhote, pato ou coelho, dê um nome e acessórios. Cada um tem uma habilidade que ajuda você.'], ['2.6.0', 'Cada nível tem seu próprio nome brilhando em neon na coluna da máquina; o acesso ao modo desenvolvedor funciona em todos os celulares.'], ['2.5.0', 'Cada mundo tem seu próprio arco e plataforma; gatos, filhotes, patos e coelhos passeiam sob os bastões; as placas da cidade saíram para os bastões aparecerem melhor.'], ['2.4.1', 'Gráficos mais nítidos no celular, jogo mais fluido sem travadas e uma só mão ao tocar com vários dedos.'], ['2.4.0', 'Perfil de jogador com XP, níveis, títulos e trilha de prêmios grátis; álbum de figurinhas; novas mecânicas (bicolores, vento, bastões que sobem); ajuda inteligente; evento das lanternas do Ramadã e presente do Eid; música que cresce com o combo e animações mais suaves.'], ['2.3.0', 'Dia agora é o tema padrão; novo histórico com backups automáticos, restauração e registro de progresso.'], ['2.2.0', 'Intro na primeira abertura, mapa de fases com caminho sinuoso, 6 temas (Pôr do sol por padrão), desafios entre amigos por link, rivais bot identificados e 5 novos idiomas.'], ['2.1.0', 'Toque preciso com luva que agarra, capturas rápidas, hit-stop, drones com poderes, o gato de rua, robôs chefões com surpresas, níveis de sobrevivência / chuva dourada / luzes apagadas, missões diárias, acessórios do Bebo, contador de FPS.'], ['2.0.0', 'Reconstrução completa: menu principal, 4 modos de jogo, loja, 26 conquistas, estatísticas, ranking local, ajustes completos, música gerada para cada mundo, o mascote Bebo, cidade arcade animada, tutorial interativo, PWA.'], ['1.0.0', 'Primeira versão: 150 níveis, mapa e estrelas, combo.']],
+    clog: [['1.0.0', 'Primeira versão: 150 níveis em 10 mundos neon com um chefe a cada 15 níveis, modos Infinito, Desafio diário e Treino, bichinhos com habilidades, molas saltitantes, níveis com flash ⚡, loja, álbum de figurinhas e conquistas — tudo offline.']],
     gift: 'Prêmio', mins: '{0}min', hours: '{0}h {1}min',
     pw_spring: 'Molas!', pw_heart: '+1 ❤️', pw_slow: 'Câmera lenta!', pw_magnet: 'Ímã!', pw_x2: 'Pontos em dobro!', quick: 'Rápido!', catSave: 'O gato salvou! 🐾', enraged: 'O chefão está furioso! 😡',
     bossName: 'Chefão · {0}', hudSurvive: 'Sobreviva · {0}s', survivedN: 'Sobreviveu {0} de {1} s',
@@ -1271,6 +1280,7 @@ STR.pt = {
     in_spring: 'Molas saltitantes', in_springD: 'De vez em quando um drone traz molas. Toque nele! Por 10 s, os palitos que você precisa quicam de volta em vez de cair no chão: uma segunda chance de pegá-los.',
     in_drone: 'Drones e poderes', in_droneD: 'De vez em quando passa um drone carregando um poder: um coração, câmera lenta, um ímã ou pontos em dobro. Toque nele para pegar!',
     in_feint: 'Tremidas falsas', in_feintD: 'Atenção: às vezes vários palitos tremem, mas só um cai de verdade. Não toque cedo demais, espere ele cair!',
+    in_flash: 'Flash da câmera ⚡', in_flashD: 'A câmera da máquina dispara um flash forte a cada poucos segundos e ofusca a tela por um instante. Quando a lente brilhar, lembre onde está o palito e pegue!',
     in_cat: 'O gato de rua', in_catD: 'Um gato passeia pela plataforma. Se um bastão-alvo cair nele, ele joga o bastão de volta pra cima uma vez por nível, e um bastão dourado nele dá moedas. Faça carinho… ele ronrona 😺',
     in_survive: 'Nível de sobrevivência ⏳', in_surviveD: 'Sem meta de capturas — só sobreviva até o tempo acabar sem perder todos os corações.',
     in_goldRain: 'Chuva dourada 💰', in_goldRainD: 'Aqui caem bastões dourados o tempo todo — cada um vale dois e deixa o tempo lento!',
@@ -1284,7 +1294,7 @@ STR.pt = {
     you: 'Você', bot: 'Bot', rivalDay: '🤖 Rival de hoje: {0} · {1}', rivalBeat: '🤖 Você venceu o rival de hoje, {0}!', rivalLost: '🤖 O rival de hoje, {0}, fez {1}',
     rivals: ['Neono', 'Volt', 'Pixel', 'Comet', 'Turbo', 'Luna', 'Blaze', 'Byte'], sName: '👤 Seu nome',
     sTheme: '🖌️ Tema', th_sunset: 'Pôr do sol', th_day: 'Dia', th_night: 'Noite neon', th_retro: 'Retrô', th_ocean: 'Oceano', th_contrast: 'Alto contraste', th_auto: 'Auto',
-    cine1: 'Bem-vindo ao Falling Sticks! 🕹️ Vou te mostrar como funciona.', cine2: 'Viu o arco brilhando? A cor dele é a do bastão que você deve pegar.', cine3: 'O bastão treme… e cai! Toque nele antes que chegue ao chão 👆', cine4: 'Outra cor? Não toque ✋ Deixe cair.', cine5: 'Pegue em sequência para fazer combos e mais pontos 🔥 Você tem {0} corações ❤️', cine6: 'Pronto? Bora jogar! 🎮', sIntro: 'Vídeo de intro',
+    cine1: 'Bem-vindo ao Falling Sticks! 🕹️ Vou te mostrar como funciona.', cine2: 'Viu o arco brilhando? A cor dele é a do bastão que você deve pegar.', cine3: 'O bastão treme... e cai! Toque nele antes que chegue ao chão 👆', cine4: 'Outra cor? Não toque ✋ Deixe cair.', cine5: 'Pegue em sequência para fazer combos e mais pontos 🔥 Você tem {0} corações ❤️', cine6: 'Pronto? Bora jogar! 🎮', sIntro: 'Vídeo de intro',
     sFps: 'Mostrar contador de FPS', st_quick: 'Capturas rápidas', st_power: 'Poderes de drone', st_missions: 'Missões feitas', st_cat: 'Salvamentos do gato',
   };
 STR.pt.achs = {
@@ -1330,7 +1340,7 @@ STR.tr = {
     sInfo: 'ℹ️ Bilgi', sTut: 'Eğitim', sChangelog: 'Yenilikler', version: 'Sürüm {0}',
     exportT: 'İlerlemeyi dışa aktar', exportD: 'Bu metni kopyala ve güvenli bir yerde sakla. Herhangi bir cihazda içe aktarabilirsin.', copy: 'Kopyala', copied: 'Kopyalandı ✓',
     importT: 'İlerlemeyi içe aktar', importD: 'Dışa aktardığın metni buraya yapıştır:', doImport: 'İçe aktar', importBad: 'Bu metin geçerli değil', importOk: 'İlerleme içe aktarıldı ✓', importConfirm: 'Bu işlem mevcut tüm ilerlemenin yerine geçer. Emin misin?',
-    reset1: 'Tüm ilerleme gerçekten silinsin mi?', reset2: 'Son uyarı! Yıldızlar, jetonlar, başarımlar ve satın alımlar sonsuza dek silinecek.', resetYes: 'Evet, devam et', resetFinal: 'Her şeyi sil', resetDone: 'İlerleme silindi', cancel: 'İptal', ok: 'Tamam', confirmT: 'Onayla',
+    reset1: 'Tüm ilerleme gerçekten silinsin mi?', reset2: 'Son uyarı! Yıldızlar, jetonlar, başarımlar ve satın alımlar silinecek. (Fikrini değiştirirsen kayıt geçmişinde bir yedek kalır.)', resetYes: 'Evet, devam et', resetFinal: 'Her şeyi sil', resetDone: 'İlerleme silindi', cancel: 'İptal', ok: 'Tamam', confirmT: 'Onayla',
     tStick: 'Çubuklar', tPlatform: 'Platform', tArch: 'Kemer', tBg: 'Arka planlar', equip: 'Kullan', equipped: 'Kullanımda ✓', noCoins: 'Yeterli jeton yok', bought: 'Satın aldın: {0}!',
     it_stick_classic: 'Klasik', it_stick_neon: 'Neon', it_stick_wood: 'Ahşap', it_stick_ice: 'Buz', it_stick_gold: 'Altın',
     it_platform_classic: 'Klasik siyah', it_platform_neon: 'Neon halka', it_platform_chrome: 'Krom', it_platform_holo: 'Hologram',
@@ -1374,7 +1384,7 @@ STR.tr = {
     petLock: 'Seviye {0}’da açılır', petPick: 'Seç', petOn: 'Seninle ✓', petName: 'İsim', petAcc: 'Aksesuarlar', petSave: 'Vak! Bir daha!', petCalm: 'Sakin…',
     it_pet_none: 'Yok', it_pet_bow: 'Fiyonk', it_pet_collar: 'Tasma', it_pet_party: 'Parti şapkası', it_pet_crown: 'Taç',
     rotate: 'Oynamak için telefonunu dik tut',
-    clog: [['2.11.1', 'Başlık ekranında hareketli bir el, kalpler yerine can çubukları, kazandıran çubukla kutlama atışı (2+ yıldız), 3. seviyeden itibaren yay gücü ve Google Play puanlama kartı. Robot Bebo gitti; yerini hayvan dostun aldı. 18. seviyeden itibaren bazı çubuklar titrer ama düşmez.'], ['2.10.0', 'Çubuğu tutup kaldıran gerçekçi bir el, gömülü yazı tipleri (tamamen çevrimdışı çalışır) ve oyun İngilizceyken hiç Arapça metin yok.'], ['2.9.0', 'Bölümler için üç yeni hareketli şarkı (elektro, darbukalı dabke ve parlak bir breakbeat); bölümlere dağıtıldı ve ilerledikçe biraz hızlanıyor.'], ['2.8.1', 'Tuzak çubuklar ve hayvanların yanında daha adil dokunuş, Duraklat iki parmakla çalışıyor, ilk boss akıllı yardımla daha kolay, altın yağmuru artık bedava değil.'], ['2.8.0', 'Daha adil dokunuş (doğru dokunuşta kalp kaybı yok), daha dengeli zorluk ve daha hızlı tempo, platformlar mağazaya döndü, küçük ekranlar düzgün görünüyor.'], ['2.7.0', 'Hayvan dostlar: kedi, köpek yavrusu, ördek ya da tavşan seç, ad ver ve süsle. Her birinin sana yardım eden bir yeteneği var.'], ['2.6.0', 'Her seviyenin makine sütununda neonla parlayan kendi adı var; geliştirici modu dokunuşu artık her telefonda çalışıyor.'], ['2.5.0', 'Her dünyanın kendi kemeri ve platformu var; kediler, köpek yavruları, ördekler ve tavşanlar çubukların altında dolaşıyor; çubuklar daha iyi görünsün diye şehir tabelaları kaldırıldı.'], ['2.4.1', 'Telefonda daha net grafikler, takılmadan daha akıcı oyun ve birden fazla parmakla dokunduğunda tek el.'], ['2.4.0', 'XP, seviyeler, unvanlar ve ücretsiz ödül yolu olan oyuncu profili; çıkartma albümü; yeni mekanikler (iki renkli, rüzgâr, yükselen çubuklar); akıllı yardım; Ramazan fener etkinliği ve bayram hediyesi; komboyla yükselen müzik ve daha akıcı animasyonlar.'], ['2.3.0', 'Varsayılan tema artık Gündüz; otomatik yedekler, geri yükleme ve ilerleme günlüğü içeren yeni kayıt geçmişi.'], ['2.2.0', 'İlk açılış tanıtımı, kıvrımlı yol şeklinde bölüm haritası, 6 tema (varsayılan Gün batımı), arkadaşlara bağlantıyla meydan okuma, etiketli bot rakipler ve 5 yeni dil.'], ['2.1.0', 'Kapma eldiveniyle hassas dokunma, hızlı yakalamalar, vuruş duraksaması, güç taşıyan dronlar, sokak kedisi, sürprizli boss robotlar, hayatta kalma / altın yağmuru / karanlık seviyeler, günlük görevler, Bebo aksesuarları, FPS sayacı.'], ['2.0.0', 'Baştan yeniden yapıldı: ana menü, 4 oyun modu, mağaza, 26 başarım, istatistikler, yerel sıralama, tam ayarlar, her dünyaya özel üretilen müzik, maskot Bebo, hareketli atari şehri, etkileşimli eğitim, PWA.'], ['1.0.0', 'İlk sürüm: 150 seviye, harita ve yıldızlar, kombo.']],
+    clog: [['1.0.0', 'İlk sürüm: 10 neon dünyada 150 seviye ve her 15 seviyede bir boss, Sonsuz, Günlük meydan okuma ve Antrenman modları, yetenekli evcil dostlar, zıplayan yaylar, kamera flaşlı seviyeler ⚡, mağaza, çıkartma albümü ve başarımlar — hepsi çevrimdışı.']],
     gift: 'Ödül', mins: '{0}dk', hours: '{0}sa {1}dk',
     pw_spring: 'Yaylar!', pw_heart: '+1 ❤️', pw_slow: 'Ağır çekim!', pw_magnet: 'Mıknatıs!', pw_x2: 'Çift puan!', quick: 'Hızlı!', catSave: 'Kedi kurtardı! 🐾', enraged: 'Boss çok öfkeli! 😡',
     bossName: '{0} Bossu', hudSurvive: 'Hayatta kal · {0}sn', survivedN: 'Dayandın: {0}/{1} sn',
@@ -1382,6 +1392,7 @@ STR.tr = {
     in_spring: 'Zıplayan yaylar', in_springD: 'Arada bir dron yay getirir. Ona dokun! 10 saniye boyunca istediğin çubuklar yere düşmek yerine geri zıplar: onları yakalamak için ikinci bir şans.',
     in_drone: 'Dronlar ve güçler', in_droneD: 'Arada bir güç taşıyan bir dron geçer: kalp, ağır çekim, mıknatıs veya çift puan. Kapmak için ona dokun!',
     in_feint: 'Sahte titreme', in_feintD: 'Dikkat: bazen birkaç çubuk birlikte titrer ama sadece biri gerçekten düşer. Erken dokunma, düşmesini bekle!',
+    in_flash: 'Kamera flaşı ⚡', in_flashD: 'Makinenin kamerası birkaç saniyede bir parlak bir flaş patlatır ve ekranı bir an kör eder. Mercek parlamaya başlayınca çubuğun yerini aklında tut ve yakala!',
     in_cat: 'Sokak kedisi', in_catD: 'Bir kedi platformda geziniyor. Hedef çubuk üstüne düşerse seviye başına bir kez onu geri yukarı sektirir; üstüne düşen altın çubuk ise jeton verir. Onu sev… mırlar 😺',
     in_survive: 'Hayatta kalma seviyesi ⏳', in_surviveD: 'Yakalama hedefi yok — tüm kalplerini kaybetmeden süre bitene kadar dayan.',
     in_goldRain: 'Altın yağmuru 💰', in_goldRainD: 'Burada sürekli altın çubuk yağar — her biri iki değerinde ve zamanı yavaşlatır!',
@@ -1395,7 +1406,7 @@ STR.tr = {
     you: 'Sen', bot: 'Bot', rivalDay: '🤖 Günün rakibi: {0} · {1}', rivalBeat: '🤖 Günün rakibi {0} yenildi!', rivalLost: '🤖 Günün rakibi {0}, {1} puan yaptı',
     rivals: ['Neono', 'Volt', 'Pixel', 'Comet', 'Turbo', 'Luna', 'Blaze', 'Byte'], sName: '👤 Adın',
     sTheme: '🖌️ Tema', th_sunset: 'Gün batımı', th_day: 'Gündüz', th_night: 'Neon gece', th_retro: 'Retro', th_ocean: 'Okyanus', th_contrast: 'Yüksek kontrast', th_auto: 'Otomatik',
-    cine1: 'Falling Sticks’e hoş geldin! 🕹️ Nasıl oynandığını göstereyim.', cine2: 'Parlayan kemeri görüyor musun? Rengi, yakalaman gereken çubuğu gösterir.', cine3: 'Bir çubuk titrer… sonra düşer! Yere çarpmadan ona dokun 👆', cine4: 'Farklı renk mi? Dokunma ✋ Düşmesine izin ver.', cine5: 'Kombo ve daha çok puan için üst üste yakala 🔥 {0} kalbin var ❤️', cine6: 'Hazır mısın? Hadi oynayalım! 🎮', sIntro: 'Tanıtım videosu',
+    cine1: 'Falling Sticks’e hoş geldin! 🕹️ Nasıl oynandığını göstereyim.', cine2: 'Parlayan kemeri görüyor musun? Rengi, yakalaman gereken çubuğu gösterir.', cine3: 'Bir çubuk titrer... sonra düşer! Yere çarpmadan ona dokun 👆', cine4: 'Farklı renk mi? Dokunma ✋ Düşmesine izin ver.', cine5: 'Kombo ve daha çok puan için üst üste yakala 🔥 {0} kalbin var ❤️', cine6: 'Hazır mısın? Hadi oynayalım! 🎮', sIntro: 'Tanıtım videosu',
     sFps: 'FPS sayacını göster', st_quick: 'Hızlı yakalama', st_power: 'Dron gücü', st_missions: 'Biten görev', st_cat: 'Kedi kurtarışı',
   };
 STR.tr.achs = {
@@ -1441,7 +1452,7 @@ STR.id = {
     sInfo: 'ℹ️ Info', sTut: 'Tutorial', sChangelog: 'Catatan rilis', version: 'Versi {0}',
     exportT: 'Ekspor progres', exportD: 'Salin teks ini dan simpan baik-baik. Kamu bisa mengimpornya di perangkat mana pun.', copy: 'Salin', copied: 'Tersalin ✓',
     importT: 'Impor progres', importD: 'Tempel teks ekspor kamu di sini:', doImport: 'Impor', importBad: 'Teks itu tidak valid', importOk: 'Progres diimpor ✓', importConfirm: 'Ini akan mengganti semua progres kamu saat ini. Yakin?',
-    reset1: 'Yakin hapus semua progres?', reset2: 'Peringatan terakhir! Bintang, koin, pencapaian, dan pembelian akan terhapus selamanya.', resetYes: 'Ya, lanjutkan', resetFinal: 'Hapus semuanya', resetDone: 'Progres dihapus', cancel: 'Batal', ok: 'OK', confirmT: 'Konfirmasi',
+    reset1: 'Yakin hapus semua progres?', reset2: 'Peringatan terakhir! Bintang, koin, pencapaian, dan pembelian akan dihapus. (Cadangan tetap ada di riwayat simpanan kalau kamu berubah pikiran.)', resetYes: 'Ya, lanjutkan', resetFinal: 'Hapus semuanya', resetDone: 'Progres dihapus', cancel: 'Batal', ok: 'OK', confirmT: 'Konfirmasi',
     tStick: 'Tongkat', tPlatform: 'Platform', tArch: 'Lengkungan', tBg: 'Latar', equip: 'Pakai', equipped: 'Dipakai ✓', noCoins: 'Koin tidak cukup', bought: 'Kamu membeli {0}!',
     it_stick_classic: 'Klasik', it_stick_neon: 'Neon', it_stick_wood: 'Kayu', it_stick_ice: 'Es', it_stick_gold: 'Emas',
     it_platform_classic: 'Hitam klasik', it_platform_neon: 'Cincin neon', it_platform_chrome: 'Krom', it_platform_holo: 'Hologram',
@@ -1484,7 +1495,7 @@ STR.id = {
     petLock: 'Terbuka di level {0}', petPick: 'Pilih', petOn: 'Bersamamu ✓', petName: 'Nama', petAcc: 'Aksesori', petSave: 'Kwek! Lagi!', petCalm: 'Tenang…',
     it_pet_none: 'Tidak ada', it_pet_bow: 'Pita', it_pet_collar: 'Kalung', it_pet_party: 'Topi pesta', it_pet_crown: 'Mahkota',
     rotate: 'Putar ponsel ke posisi tegak untuk bermain',
-    clog: [['2.11.1', 'Tangan beranimasi di layar judul, tongkat nyawa sebagai pengganti hati, lemparan perayaan dengan tongkat kemenangan (2+ bintang), kekuatan pegas sejak level 3, dan kartu rating Google Play. Robot Bebo sudah pergi; hewan peliharaanmu menggantikannya. Mulai level 18 beberapa tongkat bergetar tapi tidak jatuh.'], ['2.10.0', 'Tangan realistis yang menggenggam dan mengangkat tongkat, font bawaan (bisa offline), dan tidak ada teks Arab saat game berbahasa Inggris.'], ['2.9.0', 'Tiga lagu baru yang bersemangat untuk level (elektro, dabke dengan darbuka, dan breakbeat ceria), tersebar di semua level dan sedikit lebih cepat seiring kemajuan.'], ['2.8.1', 'Ketukan lebih adil di dekat tongkat pengecoh dan hewan, Jeda berfungsi dengan dua jari, bos pertama lebih mudah dengan bantuan pintar, dan hujan emas tidak lagi gratis.'], ['2.8.0', 'Sentuhan lebih adil (tidak kehilangan nyawa saat mengetuk dengan benar), kesulitan lebih bertahap dan tempo lebih cepat, platform kembali ke toko, dan layar kecil tampil rapi.'], ['2.7.0', 'Teman hewan: pilih kucing, anak anjing, bebek, atau kelinci, beri nama dan aksesori. Masing-masing punya kemampuan yang membantumu.'], ['2.6.0', 'Setiap level punya nama sendiri yang menyala neon di tiang mesin; ketukan mode pengembang kini berfungsi di semua ponsel.'], ['2.5.0', 'Setiap dunia punya lengkungan dan platform sendiri; kucing, anak anjing, bebek, dan kelinci berjalan-jalan di bawah tongkat; papan tulisan kota dihapus agar tongkat lebih terlihat.'], ['2.4.1', 'Grafis lebih tajam di ponsel, permainan lebih mulus tanpa patah-patah, dan satu tangan saja saat menyentuh dengan beberapa jari.'], ['2.4.0', 'Profil pemain dengan XP, level, gelar, dan jalur hadiah gratis; album stiker; mekanik baru (dua warna, angin, tongkat naik); bantuan pintar; event lentera Ramadan dan hadiah Hari Raya; musik yang makin seru seiring kombo dan animasi lebih halus.'], ['2.3.0', 'Tema Siang kini jadi bawaan; riwayat simpan baru dengan cadangan otomatis, pemulihan, dan catatan progres.'], ['2.2.0', 'Intro saat pertama dibuka, peta level berupa jalan berliku, 6 tema (Senja sebagai bawaan), tantangan teman lewat tautan, rival bot berlabel, dan 5 bahasa baru.'], ['2.1.0', 'Sentuhan presisi dengan sarung tangan penangkap, tangkapan cepat, hit-stop, drone power-up, kucing jalanan, robot bos dengan kejutan, level bertahan / hujan emas / lampu padam, misi harian, aksesori Bebo, penghitung FPS.'], ['2.0.0', 'Dibangun ulang total: menu utama, 4 mode permainan, toko, 26 pencapaian, statistik, papan skor lokal, pengaturan lengkap, musik khusus tiap dunia, maskot Bebo, kota arcade beranimasi, tutorial interaktif, PWA.'], ['1.0.0', 'Versi pertama: 150 level, peta dan bintang, kombo.']],
+    clog: [['1.0.0', 'Rilis pertama: 150 level di 10 dunia neon dengan bos setiap 15 level, mode Tanpa Akhir, Tantangan Harian dan Latihan, hewan pendamping dengan keahlian, pegas memantul, level lampu kilat ⚡, toko, album stiker dan pencapaian — semua bisa dimainkan offline.']],
     gift: 'Hadiah', mins: '{0} mnt', hours: '{0} jam {1} mnt',
     pw_spring: 'Pegas!', pw_heart: '+1 ❤️', pw_slow: 'Gerak lambat!', pw_magnet: 'Magnet!', pw_x2: 'Poin ganda!', quick: 'Cepat!', catSave: 'Kucingnya menyelamatkan! 🐾', enraged: 'Bosnya marah besar! 😡',
     bossName: 'Bos {0}', hudSurvive: 'Bertahan · {0} dtk', survivedN: 'Bertahan {0} dari {1} dtk',
@@ -1492,6 +1503,7 @@ STR.id = {
     in_spring: 'Pegas memantul', in_springD: 'Sesekali drone membawa pegas. Ketuk! Selama 10 detik, tongkat yang kamu butuhkan memantul naik alih-alih jatuh ke lantai: kesempatan kedua untuk menangkapnya.',
     in_drone: 'Drone & kekuatan', in_droneD: 'Sesekali drone terbang lewat membawa kekuatan: nyawa, gerak lambat, magnet, atau poin ganda. Ketuk untuk mengambilnya!',
     in_feint: 'Getaran palsu', in_feintD: 'Awas: kadang beberapa tongkat bergetar, tapi hanya satu yang benar-benar jatuh. Jangan ketuk terlalu cepat, tunggu sampai jatuh!',
+    in_flash: 'Lampu kilat kamera ⚡', in_flashD: 'Kamera mesin menembakkan kilatan terang setiap beberapa detik dan menyilaukan layar sesaat. Saat lensa mulai bersinar, ingat posisi tongkat dan tangkap!',
     in_cat: 'Kucing jalanan', in_catD: 'Seekor kucing berjalan santai melintasi platform. Kalau tongkat target jatuh di atasnya, dia menepisnya kembali ke atas sekali per level, dan tongkat emas yang jatuh di atasnya memberi koin. Elus dia… dia mendengkur 😺',
     in_survive: 'Level bertahan ⏳', in_surviveD: 'Tanpa target tangkapan — cukup bertahan sampai waktu habis tanpa kehilangan semua nyawa.',
     in_goldRain: 'Hujan emas 💰', in_goldRainD: 'Tongkat emas terus berjatuhan di sini — masing-masing bernilai dua dan memperlambat waktu!',
@@ -1505,7 +1517,7 @@ STR.id = {
     you: 'Kamu', bot: 'Bot', rivalDay: '🤖 Rival hari ini: {0} · {1}', rivalBeat: '🤖 Kamu mengalahkan rival hari ini, {0}!', rivalLost: '🤖 Rival hari ini, {0}, dapat skor {1}',
     rivals: ['Neono', 'Volt', 'Pixel', 'Comet', 'Turbo', 'Luna', 'Blaze', 'Byte'], sName: '👤 Namamu',
     sTheme: '🖌️ Tema', th_sunset: 'Senja', th_day: 'Siang', th_night: 'Malam neon', th_retro: 'Retro', th_ocean: 'Samudra', th_contrast: 'Kontras tinggi', th_auto: 'Otomatis',
-    cine1: 'Selamat datang di Falling Sticks! 🕹️ Yuk, aku tunjukkan cara mainnya.', cine2: 'Lihat lengkungan yang menyala? Warnanya adalah tongkat yang harus kamu tangkap.', cine3: 'Tongkat bergetar… lalu jatuh! Ketuk sebelum menyentuh lantai 👆', cine4: 'Warnanya beda? Jangan disentuh ✋ Biarkan jatuh.', cine5: 'Tangkap beruntun untuk kombo dan poin lebih banyak 🔥 Kamu punya {0} nyawa ❤️', cine6: 'Siap? Ayo main! 🎮', sIntro: 'Video intro',
+    cine1: 'Selamat datang di Falling Sticks! 🕹️ Yuk, aku tunjukkan cara mainnya.', cine2: 'Lihat lengkungan yang menyala? Warnanya adalah tongkat yang harus kamu tangkap.', cine3: 'Tongkat bergetar... lalu jatuh! Ketuk sebelum menyentuh lantai 👆', cine4: 'Warnanya beda? Jangan disentuh ✋ Biarkan jatuh.', cine5: 'Tangkap beruntun untuk kombo dan poin lebih banyak 🔥 Kamu punya {0} nyawa ❤️', cine6: 'Siap? Ayo main! 🎮', sIntro: 'Video intro',
     sFps: 'Tampilkan penghitung FPS', st_quick: 'Tangkapan cepat', st_power: 'Kekuatan drone', st_missions: 'Misi selesai', st_cat: 'Diselamatkan kucing',
   };
 STR.id.achs = {
@@ -1616,12 +1628,22 @@ function migrate(d) {
   });
   if (!QUALITY[s.settings.autoQ] || !d.settings || !d.settings.perfV) s.settings.autoQ = 'high';   // 2.4.1: new auto-quality rules, start again from high
   if (!CFG.diff[s.settings.diff]) s.settings.diff = 'normal';
+  if (s.settings.quality !== 'auto' && !QUALITY[s.settings.quality]) s.settings.quality = 'auto';
+  s.stars = Array.isArray(s.stars) ? s.stars.map(x => Math.max(0, Math.min(3, x | 0))) : [];
+  if (!Number.isFinite(s.coins) || s.coins < 0) s.coins = 0;
+  s.missions.list = Array.isArray(s.missions.list) ? s.missions.list.filter(m => m && typeof m === 'object') : [];
+  ['endless', 'daily'].forEach(k => { s.lb[k] = Array.isArray(s.lb[k]) ? s.lb[k].filter(e => e && typeof e === 'object' && Number.isFinite(e.s)) : []; });
   if (!LANGS[s.settings.lang]) s.settings.lang = 'en';
   if (!d.kitV) ['arch', 'platform'].forEach(c => { if (s.shop.eq[c] === 'classic') s.shop.eq[c] = 'world'; });   // 2.5: the old default becomes the world design
   if (!s.settings.themePicked && s.settings.theme === 'sunset') s.settings.theme = CFG.defaultTheme;   // the old default moves to Day
   return s;
 }
-function loadSave() { let raw = null; try { raw = JSON.parse(Store.get(SAVE_KEY)); } catch (e) { raw = null; } return migrate(raw); }
+function loadSave() {
+  let raw = null, txt = null;
+  try { txt = Store.get(SAVE_KEY); raw = JSON.parse(txt); } catch (e) { raw = null; }
+  if (txt && (!raw || typeof raw !== 'object')) Store.set(SAVE_KEY + '_bad', txt);   // unreadable save: keep the raw text instead of silently losing it
+  return migrate(raw);
+}
 let save = loadSave();
 let saveTimer = 0;
 /** Write now (or soon, debounced, when `soon` is true). */
@@ -1784,6 +1806,8 @@ const Sound = {
       case 'enrage': N(110, .7, 'sawtooth', .09, 0, 60); Z(.5, .1, 500); break;
       case 'bossHit': N(240, .12, 'square', .06, 0, 150); break;
       case 'dark': N(220, .45, 'sine', .07, 0, 70); break;
+      case 'flashCharge': N(900, .45, 'sine', .025, 0, 3400); break;
+      case 'flash': Z(.05, .09, 6000, 'highpass'); N(2600, .05, 'square', .03); Z(.35, .05, 1800, 'bandpass', .03); break;
       case 'mission': [523, 784, 1047, 1319].forEach((f, i) => N(f, .2, 'triangle', .07, i * .08)); break;
     }
   },
@@ -2505,6 +2529,11 @@ const FX = {
     for (const p of this.P) { if (!p.on) continue; const a = p.l / p.ml, s = p.s * (.5 + a * .7); g.globalAlpha = a; blit(g, dotSprite(p.c), p.x - s, p.y - s, s * 2, s * 2); }
     for (const p of this.R) { if (!p.on) continue; g.globalAlpha = p.l / p.ml; g.strokeStyle = p.c; g.lineWidth = p.w * (p.l / p.ml); g.beginPath(); g.arc(p.x, p.y, p.r, 0, 6.2832); g.stroke(); }
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+    g.direction = 'ltr'; g.globalAlpha = 1;
+  },
+  /** Floating texts (+1, Quick!), drawn after the hand so the grabbed stick never covers them. */
+  texts(g) {
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
     for (const p of this.T) {
       if (!p.on) continue;
       const a = p.l / p.ml; g.globalAlpha = Math.min(1, a * 2); g.font = p.font; g.direction = p.dir;
@@ -2761,10 +2790,12 @@ const Render = {
     Drone.draw(g, this.t);
     FX.draw(g);
     Glove.draw(g, tgt);
+    FX.texts(g);
     if (SM.state === 'cinema') Cinema.draw(g, tgt);
     if (CFG.mascotInPlay && !UI.minis.length) drawMascot(g, V.mx, V.my, V.ms, Mascot.mood, Mascot.t, tgt, Mascot.blink > 0, undefined, Mascot.look);
     if (sh) g.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
     Amb.drawRain(g);
+    Flash.draw(g);
     if (Game.slowT > 0) { g.globalAlpha = Math.min(1, Game.slowT * 3) * .8; blit(g, vignette('#22d3ee'), 0, 0, V.W, V.H); }
     else if (Game.powSlowT > 0) { g.globalAlpha = Math.min(1, Game.powSlowT * 2) * .55; blit(g, vignette('#22d3ee'), 0, 0, V.W, V.H); }
     if (Game.cflash > 0) { g.globalAlpha = Game.cflash * .4; g.fillStyle = '#fde047'; g.fillRect(0, 0, V.W, V.H); }
@@ -2811,6 +2842,7 @@ function cfg(n) {
     if (idx === SP.survive.idx && w >= SP.survive.fromWorld) type = 'survive';
     else if (idx === SP.goldRain.idx && w >= SP.goldRain.fromWorld) type = 'goldRain';
     else if (idx === SP.dark.idx && w >= SP.dark.fromWorld) type = 'dark';
+    else if (idx === SP.flash.idx && w >= SP.flash.fromWorld) type = 'flash';
   }
   const goal = C.goalBase + Math.floor(n / C.goalStep) + (boss ? C.bossGoal : 0);
   return {
@@ -2877,7 +2909,7 @@ const Game = {
     this.spawnT = .9;
     for (const s of this.sticks) this.resetStick(s);
     FX.clear(); Glove.clear(); Mascot.set('idle', .1);
-    Drone.reset(); Springs.reset(); Cat.reset(); Pets.reset(); Boss.setup();
+    Drone.reset(); Springs.reset(); Cat.reset(); Pets.reset(); Boss.setup(); Flash.reset();
     HUD.full();
   },
   /** Menu "attract mode": sticks drop on their own behind the menus. */
@@ -2887,7 +2919,7 @@ const Game = {
     this.ending = this.slowT = this.flash = this.shake = this.stopT = this.cflash = this.magnetT = this.x2T = this.springT = this.powSlowT = 0;
     this.pendingSwitch = false; this.rng = Math.random; this.attT = 1; this.target = 'b'; this.wind = 0; Music.intensity = 0;
     for (const s of this.sticks) this.resetStick(s);
-    FX.clear(); Glove.clear(); Drone.reset(); Springs.reset(); Cat.reset(); Pets.reset(); Boss.on = false; Boss.blackT = 0;
+    FX.clear(); Glove.clear(); Drone.reset(); Springs.reset(); Cat.reset(); Pets.reset(); Boss.on = false; Boss.blackT = 0; Flash.reset();
     Render.menuWorld = Math.min(NW - 1, Math.floor((unlockedLevel() - 1) / PER_WORLD));
   },
   attract(dt) {
@@ -2932,7 +2964,7 @@ const Game = {
       else if ((this.spawnT -= dt) <= 0) { this.spawn(); if (this.L.dbl && this.rng() < this.L.dbl) this.spawn(this.lane); this.spawnT = this.L.itv * (this.mode === 'endless' && this.lives === 1 && save.settings.assist ? 1.1 : 1); }
     }
     this.stepSticks(dt);
-    Boss.update(dt); Drone.update(dt); Cat.update(dt); Pets.update(dt);
+    Boss.update(dt); Flash.update(dt); Drone.update(dt); Cat.update(dt); Pets.update(dt);
     FX.update(dt);
     if (this.L.survive && !this.ending && this.gt >= this.L.survive) this.finish(true);
     if (this.mode === 'tutorial') Tut.update(rdt);
@@ -3273,7 +3305,7 @@ const Ach = {
   },
   name: a => achText(a.id, 0),
   desc: a => achText(a.id, 1).replace('{0}', fmt(a.goal)),
-  toastAll(list, delay) { list.forEach((a, i) => setTimeout(() => { UI.toast(a.ico, Ach.name(a), t('achNew') + ' ' + plus(a.rw)); Sound.play('unlock'); UI.coins(); }, (delay || 0) + i * 1300)); },
+  toastAll(list, delay) { const g0 = toastGen; list.forEach((a, i) => setTimeout(() => { if (g0 !== toastGen) return; UI.toast(a.ico, Ach.name(a), t('achNew') + ' ' + plus(a.rw)); Sound.play('unlock'); UI.coins(); }, (delay || 0) + i * 1300)); },
 };
 
 /** Local leaderboard. Set CFG.leaderboard.url to also POST scores to a server. */
@@ -3679,6 +3711,44 @@ function drawSpring(g, x, y, s, sq, happy) {
   g.restore();
 }
 /** While the power lasts, springs pop up under every lane and the sticks you want bounce back up once instead of landing. */
+/** Camera-flash special levels: the machine's camera lens glows for a moment, then a white burst hides the sticks. */
+const Flash = {
+  a: 0, charge: 0, next: 0, n: 0,
+  on() { return Game.mode === 'level' && !!Game.L && Game.L.type === 'flash'; },
+  lens() { const u = V.u, cx = V.sx + .885 * V.sw; return [cx - 6 * u, arcY(cx) - 24 * u]; },   // same spot as drawCamera()
+  reset() { this.a = this.charge = this.n = 0; this.next = CFG.special.flash.first; },
+  update(dt) {
+    const F = CFG.special.flash;
+    if (this.a > 0) this.a = Math.max(0, this.a - dt / F.fade);
+    if (!this.on() || Game.ending) { this.charge = 0; return; }
+    if (this.charge > 0) { if ((this.charge -= dt) <= 0) this.fire(); return; }
+    if ((this.next -= dt) > 0) return;
+    if (this.next < -1.2 || Game.sticks.some(s => s.st === ST.FALL || s.st === ST.WARN)) { this.charge = F.charge; Sound.play('flashCharge'); }   // wait (max 1.2 s) until something is dropping
+  },
+  fire() {
+    const F = CFG.special.flash;
+    this.a = 1; this.n++;
+    this.next = (F.every[0] + Math.random() * (F.every[1] - F.every[0])) * (Game.assist ? 1.5 : 1);   // Math.random: keeps the seeded stick sequence the same for challenges
+    Sound.play('flash'); Haptics.buzz(10);
+  },
+  draw(g) {
+    if (this.a <= 0 && this.charge <= 0) return;
+    const F = CFG.special.flash, [lx, ly] = this.lens(), u = V.u;
+    if (this.charge > 0) {                         // the lens charges up: a growing white glow + sparkle
+      const p = 1 - this.charge / F.charge, r = (10 + 26 * p) * u;
+      const gr = g.createRadialGradient(lx, ly, 0, lx, ly, r);
+      gr.addColorStop(0, 'rgba(255,255,255,' + (.6 + .4 * p) + ')'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.globalAlpha = 1; g.fillStyle = gr; g.fillRect(lx - r, ly - r, r * 2, r * 2);
+    }
+    if (this.a > 0) {
+      const peak = reduced() ? F.peakReduced : Game.assist ? F.peakAssist : F.peak;
+      const k = this.a > 1 - F.hold ? 1 : Math.pow(this.a / (1 - F.hold), 1.7);
+      const R = Math.hypot(V.W, V.H), gr = g.createRadialGradient(lx, ly, 0, lx, ly, R);
+      gr.addColorStop(0, '#ffffff'); gr.addColorStop(.5, 'rgba(255,255,255,.98)'); gr.addColorStop(1, 'rgba(240,245,255,.93)');
+      g.globalAlpha = k * peak; g.fillStyle = gr; g.fillRect(0, 0, V.W, V.H); g.globalAlpha = 1;
+    }
+  },
+};
 const Springs = {
   sq: new Float32Array(CFG.lanes), up: 0,
   reset() { this.up = 0; this.sq.fill(0); },
@@ -4038,7 +4108,9 @@ const Boss = {
   setup() {
     const L = Game.L; this.on = Game.mode === 'level' && L.boss; this.dead = false; this.blackT = 0;
     if (!this.on) return;
-    this.tw = CFG.boss.twists[L.w % CFG.boss.twists.length]; this.max = L.goal;
+    this.tw = CFG.boss.twists[L.w % CFG.boss.twists.length];
+    if (this.has('swap')) L.goal = Math.max(1, L.goal - CFG.boss.swapGoal);   // fast swaps are the challenge: no extra catches on top
+    this.max = L.goal;
     this.enraged = false; this.rapidT = CFG.boss.rapidEvery; this.burst = 0; this.blackNext = CFG.boss.blackEvery * .6; this.hitT = this.throwT = this.laughT = 0;
     if (this.has('swap')) L.swEvery = CFG.boss.swapEvery;
     this.enterT = 1.1; this.dieAt = 0;
@@ -4221,7 +4293,7 @@ const Missions = {
     return out;
   },
   claimable() { const M = this.ensure(); let n = 0; for (const m of M.list) if (m.done && !m.got) n++; if (!M.bonus && M.list.every(m => m.got)) n++; return n; },
-  toast(list, delay) { list.forEach((m, i) => setTimeout(() => { UI.toast(this.def(m.id).ico, t('missionDone'), this.text(m)); Sound.play('mission'); }, (delay || 0) + i * 1300)); },
+  toast(list, delay) { const g0 = toastGen; list.forEach((m, i) => setTimeout(() => { if (g0 !== toastGen) return; UI.toast(this.def(m.id).ico, t('missionDone'), this.text(m)); Sound.play('mission'); }, (delay || 0) + i * 1300)); },
 };
 
 /* ---------- save history: automatic backups + a progress log ---------- */
@@ -4650,12 +4722,14 @@ const Preview = {
       g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(88, 30); g.lineTo(112, 30); g.lineTo(100, 12); g.closePath(); g.fill();
       g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(100, 120, 56, 8, 0, 0, 7); g.fill();
     }
+    else if (k === 'flash') { S(70, 26, COLORS.b.hex); S(124, 30, COLORS.r.hex); const fr = g.createRadialGradient(164, 22, 2, 164, 22, 170); fr.addColorStop(0, 'rgba(255,255,255,1)'); fr.addColorStop(.3, 'rgba(255,255,255,.88)'); fr.addColorStop(1, 'rgba(255,255,255,.2)'); g.fillStyle = fr; g.fillRect(0, 0, w, h); g.fillStyle = '#0b0e14'; g.fillRect(150, 12, 32, 20); g.fillStyle = '#fef9c3'; g.beginPath(); g.arc(160, 22, 6, 0, 7); g.fill(); g.fillStyle = '#fde047'; g.font = '400 30px Lalezar, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⚡', 30, 108); }
     else if (k === 'dark') { g.fillStyle = '#02030a'; g.fillRect(0, 0, w, h); glow(100, 68, COLORS.b.hex, 40); S(100, 28, COLORS.b.hex); }
     else { glow(100, 70, '#ef4444', 60); drawBossBot(g, 100, 122, 1.12, { t: .4, hitT: 0, enraged: false, throwT: 0, laughT: 0, max: 1, hp: () => 1 }); }
   },
 };
 
 /** Screen state machine: splash / menu / map / modes / shop / ach / stats / lb / settings / about / intro / countdown / play / pause / end. */
+let toastGen = 0;                                  // bumped when a level starts: queued toasts from the end screen are dropped
 const SM = {
   state: 'boot', p: {},
   go(name, p) {
@@ -4663,6 +4737,7 @@ const SM = {
     const prev = this.state, P = Screens[prev];
     if (P && P.exit) P.exit(name);
     Timers.clear(); Modal.close();
+    if (name === 'intro' || name === 'countdown' || name === 'play') { toastGen++; const tb = $('#toasts'); if (tb) tb.innerHTML = ''; }
     this.state = name; this.p = p || {};
     if (Cache.stale && !['play', 'countdown', 'cinema', 'pause'].includes(name)) Cache.clear();
     document.documentElement.dataset.state = name;
@@ -4752,7 +4827,7 @@ Screens.map = {
     // level nodes
     for (let i = 0; i < MAX_LV; i++) {
       const n = i + 1, st = save.stars[i] || 0, lock = n > u, L = cfg(n), w = L.w;
-      const sp = L.type === 'survive' ? '⏳' : L.type === 'goldRain' ? '💰' : L.type === 'dark' ? '🌑' : '';
+      const sp = L.type === 'survive' ? '⏳' : L.type === 'goldRain' ? '💰' : L.type === 'dark' ? '🌑' : L.type === 'flash' ? '⚡' : '';
       h += '<button class="sn' + (L.boss ? ' boss' : '') + (lock ? ' lock' + (Dev.on ? ' devo' : '') : '') + (st ? ' done' : '') + (n === u ? ' cur' : '') + '" style="left:' + this.xp(i).toFixed(2) + '%;top:' + top(i) + 'px;--wa:' + WORLDS[w].acc + '" '
         + (lock && !Dev.on ? 'disabled' : 'data-a="lv" data-v="' + n + '"') + ' aria-label="' + t('levelN', n) + '">'
         + (lock ? (Dev.on ? n : '🔒') : L.boss ? '👑' : n)
@@ -5148,7 +5223,7 @@ function giftModal() {
     days += '<div class="day' + (got ? ' got' : '') + (now ? ' now' : '') + '">' + t('giftDay', d) + '<b><i class="coin"></i><span class="num">' + Daily.reward(d) + '</span>' + (got ? '✓' : '') + '</b></div>';
   }
   Modal.open('<h3>🎁 ' + t('giftT') + '</h3><p class="center-t note">' + t('giftD') + '</p><div class="days">' + days + '</div>'
-    + '<p class="center-t" style="font-family:var(--f-disp);font-size:1.15rem">' + t('streak', can ? cur - 1 : cur) + '</p>'
+    + ((can ? cur - 1 : cur) > 0 ? '<p class="center-t" style="font-family:var(--f-disp);font-size:1.15rem">' + t('streak', can ? cur - 1 : cur) + '</p>' : '')
     + (can ? '<button class="btn pri lg block" data-a="claim">' + t('claim', Daily.reward(cur)) + '</button>'
       : '<p class="center-t" style="color:var(--c-good)">' + t('claimed') + '</p><p class="center-t muted num" style="display:block" id="giftCd">' + t('nextIn', hms(Daily.msLeft())) + '</p>')
     + '<button class="btn sm" data-a="mClose">' + t('close') + '</button>');

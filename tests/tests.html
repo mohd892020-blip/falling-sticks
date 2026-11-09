@@ -291,6 +291,14 @@
     const a = cfg(61).dbl, b = cfg(76).dbl, c = cfg(130).dbl; ok(a > 0 && a < b && c === CFG.chance.double, [a, b, c].join());
     const g = cfg(CFG.special.goldRain.fromWorld * PER_WORLD + CFG.special.goldRain.idx); eq(g.type, 'goldRain'); ok(g.goal >= cfg(g.n - 1).goal, 'gold rain goal');
   });
+  await T('balance: survive timers and swap bosses stay smoothed (no cliffs vs their neighbours)', () => {
+    const S = CFG.special.survive, B = CFG.boss;
+    eq([S.base, S.perWorld].join(), '14,2', 'survive timer'); eq(cfg(22).survive, 16); eq(cfg(52).survive, 20); eq(cfg(127).survive, 30);
+    eq([B.swapEvery, B.swapGoal, B.enrageG, B.enrageItv].join(), '6,4,1.15,0.9', 'boss numbers');
+    fresh({ stars: Array(59).fill(3) }); Game.setup('level', 60); ok(Boss.has('swap'), 'boss 60 swaps'); eq(Game.L.goal, cfg(60).goal - B.swapGoal, 'swap boss goal'); eq(Boss.max, Game.L.goal); eq(Game.L.swEvery, B.swapEvery);
+    fresh({ stars: Array(44).fill(3) }); Game.setup('level', 45); ok(!Boss.has('swap')); eq(Game.L.goal, cfg(45).goal, 'other bosses keep their goal');
+    fresh({ stars: Array(59).fill(3) }); Game.setup('endless', 1); eq(Game.L.goal, 0, 'endless untouched');
+  });
   await T('fall time does not depend on screen height', () => {
     fresh(); const k = () => (V.fy - V.len - V.arcTop) / V.fall; const a = k(); ok(Math.abs(a - 1 / CFG.layout.fallRef) < 1e-9, 'ratio'); ok(Math.abs(V.fall / V.H - 1) < .02, 'reference stays near screen height at 390×844');
   });
@@ -347,9 +355,9 @@
     const c = document.createElement('canvas'); c.width = 60; c.height = 60; for (const k of ['cat', 'pup', 'duck', 'bunny']) drawPetIcon(c.getContext('2d'), k, 30, 54, 1.2, 'lantern', .3);
   });
   await T('fake shakes: extra sticks shake with the real one but never fall (from level 18)', () => {
-    const c0 = CFG.feint.chance;
+    const c0 = CFG.feint.chance, m0 = CFG.feint.max;
     try {
-      CFG.feint.chance = 1; fresh(); Game.setup('level', 17); Game.spawn(); eq(Game.sticks.filter(q => q.fk > 0).length, 0, 'none before level 18');
+      CFG.feint.chance = CFG.feint.max = 1; /* max too: it caps the chance at .5, which made this test fail half the time */ fresh(); Game.setup('level', 17); Game.spawn(); eq(Game.sticks.filter(q => q.fk > 0).length, 0, 'none before level 18');
       fresh(); startRun('level', 30); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99;
       Game.sticks.forEach(q => Game.resetStick(q)); Game.spawn();
       const real = Game.sticks.find(q => q.st === ST.WARN), fakes = Game.sticks.filter(q => q.fk > 0);
@@ -357,7 +365,28 @@
       const lives = Game.lives, f = fakes[0]; Game.tap(f.x, arcY(f.x) + 10 * V.u + V.len / 2, 'touch', true); eq(Game.lives, lives, 'tapping a fake costs nothing'); eq(Game.caught, 0);
       Game.spawnT = 99; step(Game.L.warn + .1); eq(real.st, ST.FALL, 'real one falls'); ok(fakes.every(q => q.st === ST.HANG && q.fk <= 0), 'fakes settle');
       rf(1 / 60);
-    } finally { CFG.feint.chance = c0; }
+    } finally { CFG.feint.chance = c0; CFG.feint.max = m0; }
+  });
+  await T('camera flash: special levels from 24 charge the lens, then blind the screen for a moment', () => {
+    const fl = []; for (let n = 1; n <= MAX_LV; n++) if (cfg(n).type === 'flash') fl.push(n);
+    eq(fl.join(), '24,39,54,69,84,99,114,129,144'); ok(INTROS.some(i => i.key === 'flash' && i.n === 24), 'intro card at 24');
+    const play = n => { fresh(); startRun('level', n); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.lives = 99; };
+    play(23); step(5); eq(Flash.n, 0, 'no flash in a normal level');
+    play(24); step(1.5); eq(Flash.n, 0, 'not right away'); step(3); ok(Flash.n >= 1, 'flashed'); ok(Flash.a > 0 || Flash.n >= 1, 'visible');
+    ok(Flash.next >= CFG.special.flash.every[0] - 3.1, 'next flash is at least ~3 s away');
+    const n1 = Flash.n; step(2); ok(Flash.n - n1 <= 1, 'never two flashes within 2 s');
+    eq(Flash.n > 0 && Flash.a < 1, true); Flash.a = 1; const pk = CFG.special.flash; ok(pk.peakReduced < pk.peak && pk.peakAssist < pk.peak, 'softer with reduce motion / assist');
+    rf(1 / 60);
+  });
+  await T('QA fixes: bad imports are cleaned, a corrupt save is kept, end-screen toasts stay behind', async () => {
+    const s = migrate({ v: 2, stars: [3, 'x', 9], coins: 1e999, settings: { quality: 'ultra' }, missions: { date: dayKey(), list: [null], bonus: false }, lb: { endless: [null, { s: 5 }], daily: [] } });
+    eq(s.stars.join(), '3,0,3'); eq(s.coins, 0); eq(s.settings.quality, 'auto'); eq(s.missions.list.length, 0); eq(s.lb.endless.length, 1);
+    const old = Store.get(SAVE_KEY);
+    try { Store.set(SAVE_KEY, '{"v":2,"coins":12'); const l = loadSave(); eq(l.coins, defaultSave().coins); eq(Store.get(SAVE_KEY + '_bad'), '{"v":2,"coins":12', 'raw text kept'); }
+    finally { if (old) Store.set(SAVE_KEY, old); try { localStorage.removeItem(SAVE_KEY + '_bad'); } catch (e) { } }
+    fresh(); UI.toast('🏆', 'x'); Ach.toastAll([ACH[0]], 40); startRun('level', 5);
+    await new Promise(r => setTimeout(r, 120)); eq(document.querySelectorAll('#toasts .toast').length, 0, 'toasts cleared when the level starts');
+    ok(!t('cine3').includes('…'), 'no ellipsis glyph in the intro font');
   });
   await T('life sticks replace the hearts in the HUD', () => {
     fresh(); Game.setup('level', 5); HUD.lives();

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13+ themed icon: the arch and three hanging sticks as one flat shape (only its alpha is used). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7" android:strokeLineCap="round"
+        android:pathData="M27,52 Q54,28 81,52" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M37,44 h6 v26 a3,3 0 0 1 -6,0 z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M51,40 h6 v30 a3,3 0 0 1 -6,0 z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M65,44 h6 v26 a3,3 0 0 1 -6,0 z" />
+</vector>

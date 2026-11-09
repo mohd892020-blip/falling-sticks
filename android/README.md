@@ -45,5 +45,11 @@ uses this key as the upload key (Play App Signing keeps the real signing key).
 
 - `IN_APP` in `index.html` is true there: no service worker, challenge links point at the public website.
 - The Android back button calls `window.appBack()`: it closes a dialog, pauses, steps back, and leaves only from the main menu.
-- Portrait only, system bars hidden, screen kept on, the camera cut-out is padded.
+- Portrait only (`android:appCategory="game"` keeps that on Android 16 tablets too), system bars hidden, screen kept on,
+  the camera cut-out is padded natively (and removed from the page's `env(safe-area-inset-*)` so it is not added twice).
+- Target SDK 36 (Google Play rule for new apps and updates since 31 Aug 2026). The back button uses `OnBackInvokedCallback`
+  on Android 13+ (Android 16 no longer calls `onBackPressed`), `onBackPressed` below that.
+- WebView has no `navigator.share`; the shell adds one that opens the Android share sheet (`FSNative.share`).
+- Backup: Auto Backup and phone-to-phone transfer keep `app_webview/` (the localStorage save), see `res/xml/`.
+- If the WebView renderer is killed (low memory) the activity restarts instead of crashing.
 - `window.FSNative.review()` (a JavaScript bridge) asks Google Play for its rating card; `Review` in `index.html` decides when (after a 2+ star win from level 3, then every 10–18 levels, 2+ days apart, at most 5 times). Play shows it only for installs from the Play Store and limits how often.

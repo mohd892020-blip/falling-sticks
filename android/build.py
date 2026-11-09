@@ -15,7 +15,7 @@ SDK = os.environ.get('ANDROID_SDK') or os.path.join(UNITY, 'SDK')
 JDK = os.environ.get('JAVA_HOME') or os.path.join(UNITY, 'OpenJDK')
 BUNDLETOOL = os.environ.get('BUNDLETOOL') or os.path.join(UNITY, 'Tools', 'bundletool-all-1.17.2.jar')
 BT = os.path.join(SDK, 'build-tools', sorted(os.listdir(os.path.join(SDK, 'build-tools')))[-1])
-TARGET = 35
+TARGET = 36                                                 # Google Play: new apps and updates must target API 36 since 31 Aug 2026
 ANDROID_JAR = os.path.join(SDK, 'platforms', 'android-%d' % TARGET, 'android.jar')
 MIN_SDK = 24
 WEB_FILES = ['index.html', 'manifest.webmanifest']          # plus the folders below
@@ -57,6 +57,7 @@ def version():
 def main():
     vname, vcode = version()
     print('Falling Sticks %s (versionCode %d), target SDK %d' % (vname, vcode, TARGET))
+    if not os.path.exists(ANDROID_JAR): sys.exit('missing %s (install "platforms;android-%d" with the SDK Manager)' % (ANDROID_JAR, TARGET))
     os.makedirs(OUT, exist_ok=True)
 
     www = os.path.join(BUILD, 'assets', 'www')                 # 1. the game files

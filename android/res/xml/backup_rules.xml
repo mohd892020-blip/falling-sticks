@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 6-11 Auto Backup: keep only the WebView data (the save lives in localStorage), not GPU/code caches. -->
+<full-backup-content>
+    <include domain="root" path="app_webview/" />
+    <exclude domain="root" path="app_webview/Default/GPUCache/" />
+    <exclude domain="root" path="app_webview/Default/Code Cache/" />
+    <exclude domain="root" path="app_webview/GPUCache/" />
+</full-backup-content>

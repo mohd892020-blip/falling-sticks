@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -20,6 +21,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -37,6 +40,10 @@ public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final int BG = Color.rgb(7, 11, 22);
     private WebView web;
+    private OnBackInvokedCallback backCb;
+    /** WebView has no navigator.share: the game's challenge sharing goes to the Android share sheet instead. */
+    private static final String SHARE_SHIM = "if(!navigator.share&&window.FSNative){navigator.share=function(d){d=d||{};"
+            + "FSNative.share(String(d.title||''),[d.text,d.url].filter(Boolean).join('\\n'));return Promise.resolve();};}";
 
     @Override
     protected void onCreate(Bundle state) {
@@ -75,7 +82,27 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
                 if (HOST.equals(u.getHost())) return false;
-                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }   // outside links open in the browser
+                String sc = u.getScheme();
+                if ("https".equals(sc) || "http".equals(sc) || "mailto".equals(sc)) {   // outside links open in the browser; nothing else
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
+                }
+                return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                if (url != null && url.contains(HOST)) view.evaluateJavascript(SHARE_SHIM, null);
+            }
+
+            /** If the WebView's renderer dies (low memory), start over instead of letting the whole app crash. */
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                if (view == web) {
+                    ((FrameLayout) view.getParent()).removeView(view);
+                    view.destroy();
+                    web = null;
+                    recreate();
+                }
                 return true;
             }
         });
@@ -87,17 +114,24 @@ public class MainActivity extends Activity {
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {   // keep the game clear of the camera cut-out
             @Override
+            @SuppressWarnings("deprecation")
             public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
                 if (Build.VERSION.SDK_INT >= 28) {
                     DisplayCutout c = insets.getDisplayCutout();
                     if (c != null) v.setPadding(c.getSafeInsetLeft(), c.getSafeInsetTop(), c.getSafeInsetRight(), c.getSafeInsetBottom());
                     else v.setPadding(0, 0, 0, 0);
+                    return insets.consumeDisplayCutout();   // the padding already clears it; the page's env(safe-area-inset-*) must not add it again
                 }
                 return insets;
             }
         });
         setContentView(root);
         hideSystemBars();
+
+        if (Build.VERSION.SDK_INT >= 33 && backCb == null) {   // Android 13+ back (predictive back; Android 16 no longer calls onBackPressed)
+            backCb = new OnBackInvokedCallback() { @Override public void onBackInvoked() { goBack(); } };
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCb);
+        }
 
         if (state != null) web.restoreState(state);
         else web.loadUrl("https://" + HOST + "/index.html?app=android");
@@ -107,6 +141,21 @@ public class MainActivity extends Activity {
     private class Bridge {
         @JavascriptInterface
         public void review() { runOnUiThread(new Runnable() { @Override public void run() { askReview(); } }); }
+
+        /** navigator.share replacement: the system share sheet with the challenge text + link. */
+        @JavascriptInterface
+        public void share(final String title, final String text) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent i = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text);
+                        if (title != null && title.length() > 0) i.putExtra(Intent.EXTRA_SUBJECT, title);
+                        startActivity(Intent.createChooser(i, title));
+                    } catch (Exception ignored) { }
+                }
+            });
+        }
     }
 
     /** Google Play In-App Review: Play decides whether the card really shows (quota); it does nothing outside a Play install. */
@@ -157,39 +206,42 @@ public class MainActivity extends Activity {
         if (hasFocus) hideSystemBars();
     }
 
-    /** The back button goes through the game (close a dialog, pause, step back); it leaves only from the main menu. */
+    /** Android 12 and older (13+ uses backCb). */
     @Override
     @SuppressWarnings("deprecation")
-    public void onBackPressed() {
+    public void onBackPressed() { goBack(); }
+
+    /** The back button goes through the game (close a dialog, pause, step back); it leaves only from the main menu. */
+    private void goBack() {
+        if (web == null) { finish(); return; }
         web.evaluateJavascript("window.appBack ? appBack() : 'exit'", new ValueCallback<String>() {
             @Override
-            public void onReceiveValue(String v) { if (v == null || v.contains("exit")) finish(); }
+            public void onReceiveValue(String v) { if (v == null || v.equals("null") || v.contains("exit")) finish(); }   // "null" = the page failed: don't trap the player
         });
     }
 
     @Override
     protected void onPause() {
-        web.onPause();
-        web.pauseTimers();
+        if (web != null) { web.onPause(); web.pauseTimers(); }
         super.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        web.resumeTimers();
-        web.onResume();
+        if (web != null) { web.resumeTimers(); web.onResume(); }
         hideSystemBars();
     }
 
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        web.saveState(out);
+        if (web != null) web.saveState(out);
     }
 
     @Override
     protected void onDestroy() {
+        if (backCb != null && Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCb);
         if (web != null) web.destroy();
         super.onDestroy();
     }
