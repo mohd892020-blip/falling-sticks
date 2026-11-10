@@ -404,14 +404,17 @@
     } finally { save.settings.autoQ = q0; save.settings.quality = s0; Perf.pending = false; applyQuality(); }
     ok(getComputedStyle(document.querySelector('#hLives .life') || document.body).backgroundImage !== '', 'life sticks drawn');
   });
-  await T('electric zone: a stick grabbed right after it drops zaps (combo lost, no heart), later it is caught (from level 12)', () => {
+  await T('electric zone: a grab above the hidden line zaps (combo lost, no heart) and shows the line; below it the stick is caught (from level 12)', () => {
     ok(!cfg(11).zap && cfg(12).zap, 'from level 12'); ok(INTROS.some(i => i.key === 'zap' && i.n === 12), 'intro card');
-    fresh(); startRun('level', 20); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99; Game.sticks.forEach(q => Game.resetStick(q));
-    const s = falling(Game.target), D = V.fy - V.len - s.y0;
-    s.y = s.y0 + D * .05; s.vy = 50 * V.u; Game.combo = 5; const lives = Game.lives, c0 = Game.caught;
-    Game.tap(s.x, s.y + V.len / 2, 'touch', true);
-    eq(s.st, ST.FALL, 'still falling'); eq(Game.caught, c0, 'not caught'); eq(Game.combo, 0, 'combo lost'); eq(Game.lives, lives, 'no heart lost');
-    s.y = s.y0 + D * .4; Game.tap(s.x, s.y + V.len / 2, 'touch', true); eq(Game.caught, c0 + 1, 'caught once out of the zone');
+    fresh(); startRun('level', 30); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99; Game.sticks.forEach(q => Game.resetStick(q));
+    const s = falling(Game.target), ly = Game.zapY(s.x);
+    ok(Math.abs(ly - (s.y0 + V.len * 1.5)) < 1, 'line half a stick under the hanging sticks at level 30'); eq(Game.zapShow, 0, 'hidden');
+    s.y = ly - V.len * .8; s.vy = 50 * V.u; Game.combo = 5; const lives = Game.lives, c0 = Game.caught;
+    Game.tap(s.x, ly - 6 * V.u, 'touch', true);
+    eq(s.st, ST.FALL, 'still falling'); eq(Game.caught, c0, 'not caught'); eq(Game.combo, 0, 'combo lost'); eq(Game.lives, lives, 'no heart lost'); ok(Game.inZap(s), 'crackles'); ok(Game.zapShow > 0, 'the line shows after a zap');
+    Game.tap(s.x, ly + 8 * V.u, 'touch', true); eq(Game.caught, c0 + 1, 'caught below the line');
+    fresh(); startRun('level', 12); Game.L.n = 12; ok(Math.abs(Game.zapY(100) - (arcY(100) + 10 * V.u + V.len * 1.5)) < 1, 'half a stick below at level 12');
+    Game.assist = true; ok(Game.zapY(100) < arcY(100) + 10 * V.u + V.len * 1.5, 'higher with assist'); Game.assist = false;
     fresh(); startRun('level', 11); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99; Game.sticks.forEach(q => Game.resetStick(q));
     const e = falling(Game.target); e.y = e.y0 + 2; const c1 = Game.caught; Game.tap(e.x, e.y + V.len / 2, 'touch', true); eq(Game.caught, c1 + 1, 'no zone before level 12');
     rf(1 / 60);
