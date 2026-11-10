@@ -43,7 +43,7 @@
     for (const s of G.sticks) {
       if (s.st !== ST.FALL || s.fake) continue;
       const prog = s.up ? (s.y0 - s.y) / Math.max(1, s.y0 - arcY(s.x)) : (s.y - s.y0) / Math.max(1, V.fy - len - s.y0);
-      if (prog < .45 || s.k === KIND.BOMB) continue;
+      if (prog < .45 || s.k === KIND.BOMB || s.live) continue;
       if (s.k === KIND.GOLD || s.k === KIND.LAMP) G.grab(s);
       else if (s.c === G.target) G.grab(s, s.y + len * .25);
       else if (s.c2 === G.target) G.grab(s, s.y + len * .75);
@@ -417,6 +417,20 @@
     Game.assist = true; ok(Game.zapY(100) < arcY(100) + 10 * V.u + V.len * 1.5, 'higher with assist'); Game.assist = false;
     fresh(); Game.setup('tutorial', 1); ok(!Game.zapOn(), 'never in the tutorial');
     rf(1 / 60);
+  });
+  await T('live sticks: from level 2, 5% to 10% of drops, grabbing one costs a life, letting it fall costs nothing', () => {
+    eq(cfg(1).live, 0); ok(Math.abs(cfg(2).live - .05) < 1e-9, '5% at level 2'); ok(Math.abs(cfg(60).live - .1) < 1e-9, '10% at level 60'); eq(cfg(150).live, .1);
+    ok(INTROS.some(i => i.key === 'live' && i.n === 2), 'intro card at level 2');
+    const play = n => { fresh(); startRun('level', n); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99; Game.sticks.forEach(q => Game.resetStick(q)); };
+    play(2); let forced = false; for (let i = 0; i < 4; i++) { Game.sticks.forEach(q => Game.resetStick(q)); Game.spawn(); if (Game.sticks.some(q => q.live)) { forced = true; break; } }
+    ok(forced, 'the level that introduces them shows one early');
+    play(80); let live = 0, drops = 0, tgt = 0;
+    for (let i = 0; i < 3000; i++) { Game.sticks.forEach(q => Game.resetStick(q)); Game.spawn(); const q = Game.sticks.find(q => q.st === ST.WARN && !q.floor); if (!q) continue; drops++; if (q.live) { live++; if (q.c === Game.target) tgt++; } }
+    const share = live / drops; ok(share > .05 && share < .12, 'share at level 80 ' + share.toFixed(3)); ok(tgt / live > .55, 'mostly the target colour');
+    play(30); const s = falling(Game.target); s.live = true; s.y = Game.zapY(s.x) + 6 * V.u; Game.combo = 4; const lives = Game.lives, c0 = Game.caught;
+    Game.tap(s.x, s.y + V.len / 2, 'touch', true); eq(Game.lives, lives - 1, 'a life lost'); eq(Game.caught, c0, 'not caught'); eq(Game.combo, 0);
+    const d = falling(Game.target); d.live = true; const l2 = Game.lives; Game.springT = 10; d.y = V.fy - V.len; Game.land(d); eq(d.st, ST.GONE, 'no spring bounce'); eq(Game.lives, l2, 'letting it fall costs nothing'); eq(Game.missed, 0);
+    Game.springT = 0; rf(1 / 60);
   });
   await T('life sticks replace the hearts in the HUD', () => {
     fresh(); Game.setup('level', 5); HUD.lives();
