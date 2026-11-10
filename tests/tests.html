@@ -57,7 +57,7 @@
   };
   const hang = () => Game.sticks.find(s => s.st === ST.HANG && !s.floor);
   /** Put a hanging stick mid-fall for direct grab/land checks. */
-  const falling = (c, c2, k) => { const s = hang(); s.st = ST.FALL; s.y0 = arcY(s.x) + 10 * V.u; s.y = s.y0 + 40 * V.u; s.vy = 50; s.c = c; s.c2 = c2 || ''; s.k = k || KIND.N; return s; };
+  const falling = (c, c2, k) => { const s = hang(); s.st = ST.FALL; s.y0 = arcY(s.x) + 10 * V.u; s.y = s.y0 + 40 * V.u + (Game.zapOn() ? V.len * 1.6 : 0); s.vy = 50; s.c = c; s.c2 = c2 || ''; s.k = k || KIND.N; return s; };
   const other = () => COLOR_KEYS.find(c => c !== Game.target);
   const third = () => COLOR_KEYS.find(c => c !== Game.target && c !== other());
   layout(); Cache.clear();
@@ -404,8 +404,8 @@
     } finally { save.settings.autoQ = q0; save.settings.quality = s0; Perf.pending = false; applyQuality(); }
     ok(getComputedStyle(document.querySelector('#hLives .life') || document.body).backgroundImage !== '', 'life sticks drawn');
   });
-  await T('electric zone: a grab above the hidden line zaps (combo lost, no heart) and shows the line; below it the stick is caught (from level 12)', () => {
-    ok(!cfg(11).zap && cfg(12).zap, 'from level 12'); ok(INTROS.some(i => i.key === 'zap' && i.n === 12), 'intro card');
+  await T('electric zone: a grab above the hidden line zaps (combo lost, no heart) and shows the line; below it the stick is caught (from level 1)', () => {
+    ok(cfg(1).zap, 'from level 1'); ok(INTROS.some(i => i.key === 'zap' && i.n === 1), 'intro card');
     fresh(); startRun('level', 30); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99; Game.sticks.forEach(q => Game.resetStick(q));
     const s = falling(Game.target), ly = Game.zapY(s.x);
     ok(Math.abs(ly - (s.y0 + V.len * 1.5)) < 1, 'line half a stick under the hanging sticks at level 30'); eq(Game.zapShow, 0, 'hidden');
@@ -415,8 +415,7 @@
     Game.tap(s.x, ly + 8 * V.u, 'touch', true); eq(Game.caught, c0 + 1, 'caught below the line');
     fresh(); startRun('level', 12); Game.L.n = 12; ok(Math.abs(Game.zapY(100) - (arcY(100) + 10 * V.u + V.len * 1.5)) < 1, 'half a stick below at level 12');
     Game.assist = true; ok(Game.zapY(100) < arcY(100) + 10 * V.u + V.len * 1.5, 'higher with assist'); Game.assist = false;
-    fresh(); startRun('level', 11); if (SM.state === 'intro') SM.go('countdown'); SM.go('play'); Game.spawnT = 99; Game.sticks.forEach(q => Game.resetStick(q));
-    const e = falling(Game.target); e.y = e.y0 + 2; const c1 = Game.caught; Game.tap(e.x, e.y + V.len / 2, 'touch', true); eq(Game.caught, c1 + 1, 'no zone before level 12');
+    fresh(); Game.setup('tutorial', 1); ok(!Game.zapOn(), 'never in the tutorial');
     rf(1 / 60);
   });
   await T('life sticks replace the hearts in the HUD', () => {
