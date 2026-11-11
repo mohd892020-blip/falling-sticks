@@ -1,6 +1,6 @@
 /* Falling Sticks service worker: offline app shell (fonts included).
    Bump CACHE whenever index.html changes so players get the new version. */
-const CACHE = 'falling-sticks-v1.0.6';
+const CACHE = 'falling-sticks-v1.1.0';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon.svg',
   './fonts/fonts.css', './fonts/cairo-arabic.woff2', './fonts/cairo-latin.woff2', './fonts/cairo-latin-ext.woff2',
   './fonts/lalezar-arabic.woff2', './fonts/lalezar-latin.woff2', './fonts/lalezar-latin-ext.woff2'];

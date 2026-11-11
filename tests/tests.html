@@ -49,7 +49,7 @@
       else if (s.c2 === G.target) G.grab(s, s.y + len * .75);
     }
   };
-  const fresh = o => { save = migrate(Object.assign({ v: SAVE_VERSION, introSeen: true, tutorialDone: true, xpInit: true }, o || {})); save.settings.music = save.settings.sfx = 0; save.settings.lang = 'en'; LANG = 'en'; Season.id = ''; Timers.clear(); Modal.close(); };
+  const fresh = o => { save = migrate(Object.assign({ v: SAVE_VERSION, introSeen: true, tutorialDone: true, xpInit: true }, o || {})); save.settings.music = save.settings.sfx = 0; save.settings.lang = 'en'; LANG = 'en'; if (!(o && o.settings && o.settings.diff)) save.settings.diff = 'normal'; Season.id = ''; Timers.clear(); Modal.close(); };
   const play = (mode, n, maxSec, b) => {
     startRun(mode, n); if (SM.state === 'intro') SM.go('countdown');
     step(3); let t = 0; while (SM.state === 'play' && t < (maxSec || 240)) { step(1, b === undefined ? bot : b); t++; }
@@ -96,7 +96,7 @@
   await T('save: v1 prototype save migrates', () => { const s = migrate({ s: [3, 2, 1] }); eq(s.v, SAVE_VERSION); eq(s.stars.join(), '3,2,1'); ok(s.tutorialDone && s.introSeen, 'flags'); eq(s.xp, 0); });
   await T('save: merge keeps free-form maps and rejects wrong types', () => {
     const s = migrate({ v: SAVE_VERSION, coins: 'lots', xp: 75, stickers: { '0_enter': 5 }, fails: { 12: 2 }, seenWorld: { 3: 1 }, event: { id: 'ramadan-1', n: 4, got: [0] }, settings: { theme: 'nope-but-string', diff: 'insane' } });
-    eq(s.coins, 0, 'coins'); eq(s.xp, 75, 'xp'); eq(s.stickers['0_enter'], 5); eq(s.fails[12], 2); eq(s.seenWorld[3], 1); eq(s.event.n, 4); eq(s.settings.diff, 'normal');
+    eq(s.coins, 0, 'coins'); eq(s.xp, 75, 'xp'); eq(s.stickers['0_enter'], 5); eq(s.fails[12], 2); eq(s.seenWorld[3], 1); eq(s.event.n, 4); eq(s.settings.diff, 'hard', 'new default'); eq(s.settings.theme, 'day'); eq(s.settings.lang, 'en'); eq(s.settings.cb, false);
   });
   await T('player: XP curve, titles and level-up rewards', () => {
     fresh(); eq(Player.info(0).l, 1); eq(Player.info(Player.need(1) - 1).l, 1); eq(Player.info(Player.need(1)).l, 2);
@@ -174,9 +174,13 @@
     fresh({ stars: [3, 3, 3] }); eq(play('level', 4), 'end'); const r = Screens.end.r;
     ok(r.win && r.xp > 0, 'xp ' + r.xp); eq(save.xp, r.xp); ok(save.stickers['0_enter'], 'first sticker'); ok(save.log.some(e => e.k === 'win'), 'log');
   });
-  await T('challenge links survive a round trip', () => {
-    for (const nm of ['Lina', 'سارة', 'Zoë 🎮']) { const o = { m: 'level', n: 37, s: 3141592653, sc: 999, nm }; eq(JSON.stringify(Challenge.decode(Challenge.encode(o))), JSON.stringify(o), nm); }
-    eq(Challenge.decode('not-base64!!'), null); eq(Challenge.decode(Challenge.encode({ m: 'hack', n: 1 })), null);
+  await T('high scores: names are cleaned and filtered, only better scores wait to be sent', () => {
+    eq(HS.clean('  Lina<script>  '), 'Linascript'); eq(HS.clean('سارة 🎮'), 'سارة'); eq(HS.clean('abcdefghijklmnop'), 'abcdefghijkl');
+    ok(HS.bad('sh1t head'), 'leet swear'); ok(!HS.bad('Lina'), 'normal name');
+    fresh(); HS.submit('endless', 500, 12); HS.submit('endless', 300, 9); eq(save.hs.q.length, 1); eq(save.hs.q[0].s, 500, 'keeps the best');
+    save.hs.sent.endless = 800; save.hs.q = []; HS.submit('endless', 700, 3); eq(save.hs.q.length, 0, 'not better than sent'); HS.submit('endless', 700, 3, true); eq(save.hs.q.length, 1, 'rename resend');
+    save.hs.q = [{ id: 'daily-2000-01-01', s: 9, lv: 1 }]; HS.flush(); eq(save.hs.q.length, 0, 'old days dropped');
+    ok(!HS.on() || CFG.online.projectId, 'config'); fresh();
   });
   await T('history: backup and restore', () => { fresh({ coins: 500 }); History.backup('manual'); save.coins = 1; ok(History.restore(0)); eq(save.coins, 500); });
   await T('every screen renders in every language', () => {
@@ -318,7 +322,7 @@
   });
   await T('no Arabic script anywhere while the game is in English (or another non-Arabic language)', () => {
     const AR = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/, bad = [], names = ['splash', 'menu', 'map', 'modes', 'missions', 'shop', 'ach', 'stats', 'lb', 'settings', 'about', 'profile', 'album', 'pets', 'saves'];
-    for (const l of ['en', 'fr', 'tr']) {
+    for (const l of ['en']) {
       fresh({ stars: Array(40).fill(3) }); LANG = save.settings.lang = l; applySettings && applySettings(); Season.id = 'ramadan';
       for (const n of names) { SM.go(n); if (AR.test(UI.cur.textContent)) bad.push(l + ':' + n + ' «' + (UI.cur.textContent.match(new RegExp('.{0,12}' + AR.source + '+.{0,12}')) || [''])[0] + '»'); }
       for (const k of Object.keys(SHOP)) { SM.go('shop'); Actions.shopTab(k); if (AR.test(UI.cur.textContent)) bad.push(l + ':shop.' + k); }

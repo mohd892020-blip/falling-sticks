@@ -1,0 +1,26 @@
+rules_version = '2';
+// Falling Sticks online High Scores. Paste this into Firebase console > Firestore Database > Rules, then Publish.
+// One entry per player (anonymous Firebase account) per board: "endless", or "daily-YYYY-MM-DD" for the daily challenge.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /boards/{board}/scores/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && board.matches('endless|daily-[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && request.resource.data.keys().hasOnly(['name', 'score', 'lv'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 12
+        && request.resource.data.score is int
+        && request.resource.data.score > 0
+        && request.resource.data.score < 5000000
+        && request.resource.data.lv is int
+        && (resource == null || request.resource.data.score >= resource.data.score);
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
