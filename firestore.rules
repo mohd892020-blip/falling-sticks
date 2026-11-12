@@ -12,6 +12,7 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() >= 1
         && request.resource.data.name.size() <= 12
+        && request.resource.data.name.matches('[A-Za-z0-9 _.-]{1,12}')
         && request.resource.data.score is int
         && request.resource.data.score > 0
         && request.resource.data.score < 5000000

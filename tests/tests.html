@@ -174,9 +174,36 @@
     fresh({ stars: [3, 3, 3] }); eq(play('level', 4), 'end'); const r = Screens.end.r;
     ok(r.win && r.xp > 0, 'xp ' + r.xp); eq(save.xp, r.xp); ok(save.stickers['0_enter'], 'first sticker'); ok(save.log.some(e => e.k === 'win'), 'log');
   });
+  await T('menu: buttons appear after levels 1, 3 and 5, with a NEW tag until opened', () => {
+    const has = k => !!UI.cur.querySelector('[data-a="' + k + '"]');
+    const dev = Dev.on; Dev.on = false;
+    try {
+      fresh({ menuSeen: {} }); SM.go('menu'); ok(has('play') && has('settings'), 'play + settings'); for (const k of ['shop', 'ach', 'modes', 'lb', 'stats', 'missions', 'pets']) ok(!has(k), 'hidden ' + k);
+      fresh({ stars: [3], menuSeen: {} }); SM.go('menu'); ok(has('shop') && has('ach') && !has('modes') && !has('lb'), 'after level 1'); ok(/NEW/.test(UI.cur.querySelector('[data-a="shop"]').textContent), 'NEW tag');
+      fresh({ stars: [3, 3, 3], menuSeen: {} }); SM.go('menu'); ok(has('modes') && has('lb') && !has('stats') && !has('missions'), 'after level 3');
+      fresh({ stars: [3, 3, 3, 3, 3], menuSeen: {} }); SM.go('menu'); ok(has('stats') && has('missions') && has('pets'), 'after level 5');
+      const s = migrate({ v: SAVE_VERSION, stars: Array(8).fill(3) }); eq(s.menuSeen.shop, 1, 'old players see no NEW'); eq(s.menuSeen.stats, 1);
+    } finally { Dev.on = dev; fresh(); SM.go('menu'); }
+  });
+  await T('end screen: a High Scores button invites the player once the list is open', async () => {
+    const L0 = HS.list, on0 = CFG.online.apiKey, dev = Dev.on; Dev.on = false; CFG.online.apiKey = CFG.online.apiKey || 'test';
+    HS.list = async () => [{ uid: 'someone', nm: 'Lina', s: 9000, lv: 30 }]; HS.view = {};
+    try {
+      fresh({ stars: [3, 3, 3, 3], menuSeen: {} }); eq(play('level', 5), 'end', 'level 5 ends');
+      const b = UI.cur.querySelector('.hsb'); ok(b && b.dataset.a === 'lb', 'button shown');
+      await new Promise(r => setTimeout(r, 50)); ok(/Lina/.test($('#eHsSub').textContent), 'teases #1: ' + $('#eHsSub').textContent);
+      fresh({ menuSeen: {} }); eq(play('level', 1), 'end', 'level 1 ends'); ok(!UI.cur.querySelector('.hsb'), 'hidden before level 3');
+    } finally { HS.list = L0; CFG.online.apiKey = on0; Dev.on = dev; HS.view = {}; fresh(); SM.go('menu'); }
+  });
   await T('high scores: names are cleaned and filtered, only better scores wait to be sent', () => {
-    eq(HS.clean('  Lina<script>  '), 'Linascript'); eq(HS.clean('سارة 🎮'), 'سارة'); eq(HS.clean('abcdefghijklmnop'), 'abcdefghijkl');
-    ok(HS.bad('sh1t head'), 'leet swear'); ok(!HS.bad('Lina'), 'normal name');
+    eq(HS.clean('  Lina<script>  '), 'Linascript'); eq(HS.clean('سارة 🎮'), ''); eq(HS.clean('Ali علي'), 'Ali'); eq(HS.clean('abcdefghijklmnop'), 'abcdefghijkl');
+    ok(HS.latin('Lina_2 x.y-z')); ok(!HS.latin('سارة'), 'Arabic refused'); ok(!HS.latin('Max🎮'), 'emoji refused'); ok(!HS.latin('Zoë'), 'accents refused');
+    const inp = { value: 'سارة', focus() {} }, er = { textContent: '' }; eq(HS.take(inp, er), ''); eq(er.textContent, t('hsLatin'));
+    inp.value = 'Mo 77'; eq(HS.take(inp, er), 'Mo 77');
+    for (const n of ['sh1t head', 'FUUUCK', 'f.u.c.k', 'b1tch', 'ass', 'Big Ass', 'xxx', 'Hitler', 'p0rn', 'a55hole']) ok(HS.bad(n), 'refused: ' + n);
+    for (const n of ['Lina', 'Bob', 'Grape', 'Peacock', 'Cocktail', 'Scunthorpe', 'Nazir', 'Bass', 'Classic', 'Assassin', 'Knight', 'Nigel', 'Sussex', 'Titan', 'Kiko', 'Coke', 'Khawla', 'Hancock'])
+      ok(!HS.bad(n), 'allowed: ' + n);
+    eq(migrate({ v: SAVE_VERSION, name: 'سارة' }).name, '', 'old Arabic name asked again'); eq(migrate({ v: SAVE_VERSION, name: 'Mo' }).name, 'Mo');
     fresh(); HS.submit('endless', 500, 12); HS.submit('endless', 300, 9); eq(save.hs.q.length, 1); eq(save.hs.q[0].s, 500, 'keeps the best');
     save.hs.sent.endless = 800; save.hs.q = []; HS.submit('endless', 700, 3); eq(save.hs.q.length, 0, 'not better than sent'); HS.submit('endless', 700, 3, true); eq(save.hs.q.length, 1, 'rename resend');
     save.hs.q = [{ id: 'daily-2000-01-01', s: 9, lv: 1 }]; HS.flush(); eq(save.hs.q.length, 0, 'old days dropped');

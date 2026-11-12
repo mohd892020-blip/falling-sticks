@@ -88,6 +88,10 @@ svg{display:block}
 .btn.pri{--b1:var(--pri-1);--b2:var(--pri-2);--bd:var(--pri-bd);--fg:var(--c-on-accent)}
 .btn.pink{--b1:#ff7cc4;--b2:#e11d74;--bd:#7a0d3d;--fg:#fff}
 .btn.cyan{--b1:#67e8f9;--b2:#0891b2;--bd:#0b4a5c;--fg:#04222b}
+.btn.hsb{--b1:#f472b6;--b2:#7c3aed;--bd:#3b0764;--fg:#fff;flex-direction:column;gap:1px;line-height:1.15}
+.btn.hsb small{font-family:var(--f-body);font-size:.78rem;font-weight:700;opacity:.95}
+.motion .btn.hsb:not(.locked){animation:hsPulse 1.8s ease-in-out infinite}
+@keyframes hsPulse{0%,100%{box-shadow:0 0 0 0 rgba(236,72,153,.55)}55%{box-shadow:0 0 0 10px rgba(236,72,153,0)}}
 .btn.danger{--b1:#f87171;--b2:#dc2626;--bd:#7f1d1d;--fg:#fff}
 .btn.sm{min-height:40px;font-size:1.02rem;padding:8px 14px;border-radius:var(--r-1);box-shadow:0 4px 0 var(--bd),inset 0 1px 0 rgba(255,255,255,.2)}
 .btn.sm:active{transform:translateY(3px);box-shadow:0 1px 0 var(--bd)}
@@ -96,6 +100,7 @@ svg{display:block}
 .btn.ico{width:46px;min-width:46px;height:46px;min-height:46px;padding:0;border-radius:14px;font-size:1.3rem}
 .btn.ico svg{width:24px;height:24px;fill:currentColor}
 .btn.locked,.btn:disabled{opacity:.35;pointer-events:none;filter:grayscale(.5)}
+.btn .badge.new{min-width:0;padding:0 6px;background:var(--c-good,#16a34a);font-size:.62rem;letter-spacing:.04em}
 .btn .badge{position:absolute;top:-6px;inset-inline-end:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--c-red);color:#fff;font-family:var(--f-body);font-size:.72rem;font-weight:800;display:grid;place-items:center;padding:0 5px;box-shadow:0 0 0 2px var(--c-bg)}
 .btn small{font-family:var(--f-body);font-weight:800;font-size:.72rem;opacity:.8;display:block}
 .btn .stack{display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -444,7 +449,7 @@ html.reduce *,html.reduce *::before,html.reduce *::after{animation-duration:.001
 .mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .mgrid .btn{padding:8px 6px}
 .mtop{gap:6px}
-@media (max-width:399px){.mtop>[data-a=settings]{display:none}}
+@media (max-width:399px){.mtop.hasgrid>[data-a=settings]{display:none}}
 @media (max-width:349px){.mtop{gap:4px}.mtop .btn.ico{width:40px;min-width:40px;height:40px;min-height:40px}.mtop .pill{padding:6px 8px;font-size:1rem}}
 .tabs{flex-wrap:wrap}.tab{flex:1 1 auto;padding:9px 8px;min-height:44px}
 .days{grid-template-columns:repeat(4,minmax(0,1fr))}.day b{font-size:1rem;gap:2px}.day b .coin{width:.85em;height:.85em}
@@ -509,12 +514,13 @@ input[type=range]{height:44px}
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
   lanes: 9,                                   // sticks hanging on the arch
   layout: { arcTop: .2, arcSag: 34, floor: .86, laneFrom: .07, laneTo: .79, stageAspect: .62, stageMax: 560, stickLen: 70, stickW: 11, fallRef: 1.75 },
+  menuUnlock: { shop: 1, ach: 1, modes: 3, lb: 3, stats: 5, missions: 5, pets: 5 },   // menu buttons appear once this many levels are cleared (new players are not flooded)
   diff: {                                     // difficulty presets (settings)
     easy:   { lives: 5, grav: .8,   itv: 1.12, coin: 1 },
     normal: { lives: 3, grav: 1,    itv: 1,    coin: 1 },
@@ -573,7 +579,7 @@ const CFG = {
   titles: [1, 5, 10, 15, 20, 30, 50],                   // player level at which each title in STR.titles unlocks
   stickerSet: 150,                                      // coins for a complete world sticker set
   ramadan: [{ n: 20, coins: 100 }, { n: 50, item: ['pet', 'lantern'] }, { n: 100, coins: 300 }],   // lantern event rewards
-  online: { apiKey: '', projectId: '', size: 50, max: 5000000 },   // Firebase project for the online high scores (empty = off); see store/high-scores-setup.html
+  online: { apiKey: 'AIzaSyDopbvYGXjYGMNMXce72i3oANntX1zf-9s', projectId: 'stick-scores', size: 50, max: 5000000 },   // Firebase project for the online high scores (empty = off); see store/high-scores-setup.html
 };
 
 /** Graphics presets. `auto` picks one of these by measuring FPS. */
@@ -758,10 +764,10 @@ const Timers = {
 /* ============================ 3. I18N ============================ */
 const STR = {
   en: {
-    nextLv: 'Next level', sNameD: 'Shown on the online High Scores. Letters and numbers, 12 at most.', lbLoading: 'Loading scores...', lbRetry: 'Try again',
+    nextLv: 'Next level', hsTease: 'Can you make the top 50? Try Endless!', hsBeat: '#1 is {0} with {1}. Can you beat it?', hsTop1: 'You are #1. Defend your spot!', hsSeeAll: 'See the full list and your rank', menuNew: 'New in the menu: {0}', sNameD: 'Shown on the online High Scores. English letters and numbers, 12 at most.', lbLoading: 'Loading scores...', lbRetry: 'Try again',
     lbOffline: 'Can\'t reach the High Scores right now. Check your internet connection.', lbMine: 'Your best: {0}', lbNoteE: 'Best Endless score of each player',
     lbNoteD: 'Today\'s daily challenge, a new list every day', hsSoon: 'Online High Scores are coming soon.', hsNameT: 'New high score!',
-    hsNameD: 'Pick a name for the online High Scores. Other players will see it.', hsSave: 'Save', hsLater: 'Not now', hsBad: 'Please pick another name.', hsEmpty: 'Type a name first.',
+    hsNameD: 'Pick a name for the online High Scores. Other players will see it.', hsSave: 'Save', hsLater: 'Not now', hsBad: 'Please pick another name.', hsEmpty: 'Type a name first.', hsLatin: 'English letters and numbers only.',
     hsRankE: 'High Scores rank #{0}', hsRankD: 'Today\'s rank #{0}',
     sSaves: '📜 Save history', savesT: 'Save history', tBackups: 'Backups', tLog: 'Progress log', bkNow: 'Back up now', bkRestore: 'Restore', bkConfirm: 'Go back to this backup ({0})? Your current progress is backed up first.', bkDone: 'Backup restored ✓', bkSaved: 'Backup saved ✓', bkEmpty: 'No backups yet', bkInfo: 'Your progress saves on this device after every run. Backups are made from time to time and before any import, reset or restore, and they even survive a reset.', bkWhy_auto: 'Auto', bkWhy_manual: 'Manual', bkWhy_import: 'Before import', bkWhy_reset: 'Before reset', bkWhy_restore: 'Before restore', bkSum: 'Level {0} · ★ {1} · 🪙 {2}', lastSave: '💾 Last saved: {0}', justNow: 'just now', logEmpty: 'Play a little and your progress will show up here.', lg_win: 'Won level {0} {1}', lg_boss: 'Beat the boss of {0} 👑', lg_ach: 'Achievement: {0} 🏆', lg_best: 'New record in {0}: {1}', lg_buy: 'Bought {0} 🛍️', lg_daily: 'Won the daily challenge 📅', lg_world: 'New world unlocked: {0} 🌆', lg_restore: 'Restored a backup ↩️', lg_import: 'Imported progress 📥', lg_reset: 'Started over 🔄',
     title: 'Falling Sticks', sub: 'Catch the glowing colour', tapStart: 'Tap to start',
@@ -833,7 +839,7 @@ const STR = {
     petPick: 'Choose', petOn: 'With you ✓', petName: 'Name', petAcc: 'Accessories', it_pet_none: 'None',
     it_pet_bow: 'Bow', it_pet_collar: 'Collar', it_pet_party: 'Party hat', it_pet_crown: 'Crown',
     rotate: 'Turn your phone upright to play',
-    clog: [['1.1.0', 'Online High Scores for Endless and the daily challenge, a cleaner end screen, the Map is now called Levels, and the game starts on Hard.'], ['1.0.6', 'Live sticks from level 2: they crackle with yellow sparks and carry a ⚡; grab one and you lose a life, even in the target colour.'], ['1.0.5', 'The hidden electric line now starts from level 1.'], ['1.0.4', 'The electric line is now hidden and only lights up when you get zapped; it sits half a stick under the sticks in every level.'], ['1.0.3', 'The electric zone is now a blue safety line under the sticks: grab above it and you get zapped. The line moves lower until level 30.'], ['1.0.2', 'Electric zone from level 12: a stick crackles right after it drops, grab it then and you get zapped and lose your combo.'], ['1.0.1', 'Smoother play on phones (no more hitches), and the life sticks now take the colour you must catch.'], ['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements. Everything plays offline.']],
+    clog: [['1.1.1', 'New players start with a simple menu. More buttons appear after levels 1, 3 and 5.'], ['1.1.0', 'Online High Scores for Endless and the daily challenge, a cleaner end screen, the Map is now called Levels, and the game starts on Hard.'], ['1.0.6', 'Live sticks from level 2: they crackle with yellow sparks and carry a ⚡; grab one and you lose a life, even in the target colour.'], ['1.0.5', 'The hidden electric line now starts from level 1.'], ['1.0.4', 'The electric line is now hidden and only lights up when you get zapped; it sits half a stick under the sticks in every level.'], ['1.0.3', 'The electric zone is now a blue safety line under the sticks: grab above it and you get zapped. The line moves lower until level 30.'], ['1.0.2', 'Electric zone from level 12: a stick crackles right after it drops, grab it then and you get zapped and lose your combo.'], ['1.0.1', 'Smoother play on phones (no more hitches), and the life sticks now take the colour you must catch.'], ['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements. Everything plays offline.']],
     gift: 'Reward', mins: '{0}m', hours: '{0}h {1}m',
     pw_spring: 'Springs!', pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', enraged: 'The boss is furious! 😡',
     bossName: 'Boss of {0}', hudSurvive: 'Survive · {0}s', survivedN: 'Survived {0} of {1} s',
@@ -911,6 +917,7 @@ function defaultSave() {
     pet: { id: 'cat', name: '' },
     review: { n: 0, next: 0, at: 0 },
     beboRefund: false,
+    menuSeen: {},                                // menu buttons already opened (no NEW tag)
     hs: { q: [], sent: {} }, endlessLv: 0,       // online high scores: scores waiting to be sent, best sent per board
     daily: { last: '', streak: 0, best: 0 },
     dailyCh: { date: '', done: false, best: 0 },
@@ -939,7 +946,7 @@ function mergeSave(base, over) {
     if (!(k in over)) continue;
     const b = base[k], o = over[k];
     if (b && typeof b === 'object' && !Array.isArray(b)) {
-      if (['ach', 'seen', 'stickers', 'fails', 'seenWorld'].includes(k)) { if (o && typeof o === 'object') base[k] = Object.assign({}, o); }   // free-form maps
+      if (['ach', 'seen', 'stickers', 'fails', 'seenWorld', 'menuSeen'].includes(k)) { if (o && typeof o === 'object') base[k] = Object.assign({}, o); }   // free-form maps
       else base[k] = mergeSave(b, o);
     } else if (Array.isArray(b)) { if (Array.isArray(o)) base[k] = o.slice(); }
     else if (typeof b === typeof o) base[k] = o;
@@ -959,6 +966,7 @@ function migrate(d) {
     if (oldBebo.includes('lantern') && !s.shop.owned.pet.includes('lantern')) s.shop.owned.pet.push('lantern');
   }
   s.beboRefund = true;
+  if (!d.menuSeen) { let n = 0; while (s.stars[n]) n++; for (const k in CFG.menuUnlock) if (n >= CFG.menuUnlock[k]) s.menuSeen[k] = 1; }   // players who already had these buttons get no NEW tags
   if (!('introSeen' in d) && (s.tutorialDone || s.stars.some(Boolean))) s.introSeen = true;   // existing players skip the first-run intro
   Object.keys(SHOP).forEach(c => {                            // keep equipped items valid
     const free = SHOP[c][0].id;
@@ -978,7 +986,7 @@ function migrate(d) {
   try { s.settings.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { s.settings.reduce = false; }   // the phone's own setting
   if (!s.hs || !Array.isArray(s.hs.q)) s.hs = { q: [], sent: {} };
   s.hs.q = s.hs.q.filter(e => e && typeof e.id === 'string' && Number.isFinite(e.s)); if (!s.hs.sent || typeof s.hs.sent !== 'object') s.hs.sent = {};
-  s.name = String(s.name || '').replace(/[<>&"']/g, '').trim().slice(0, 12);
+  s.name = String(s.name || '').normalize('NFKC').replace(/[^A-Za-z0-9 _.-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 12);   // High Scores names are English only (an Arabic name becomes '' and is asked again)
   if (!d.kitV) ['arch', 'platform'].forEach(c => { if (s.shop.eq[c] === 'classic') s.shop.eq[c] = 'world'; });   // 2.5: the old default becomes the world design
   if (!s.settings.themePicked && s.settings.theme === 'sunset') s.settings.theme = CFG.defaultTheme;   // the old default moves to Day
   return s;
@@ -2264,6 +2272,9 @@ function plainCfg(n) { const L = cfg(n); L.boss = false; L.type = ''; L.survive 
 const C_GOAL = n => CFG.level.goalBase + Math.floor(n / CFG.level.goalStep);
 /** First level without stars (levels open in sequence). */
 const unlockedLevel = () => { let n = 1; while (n < MAX_LV && save.stars[n - 1]) n++; return n; };
+/** Is a menu button open yet (levels cleared in a row >= CFG.menuUnlock)? Everything is open in developer mode. */
+const menuOn = k => !(k in CFG.menuUnlock) || Dev.on || unlockedLevel() - 1 >= CFG.menuUnlock[k];
+const menuNew = k => (k in CFG.menuUnlock) && menuOn(k) && !save.menuSeen[k] ? '<span class="badge new">NEW</span>' : '';
 const Session = { bossIntro: {} };
 
 const Game = {
@@ -2751,14 +2762,30 @@ const Ach = {
  *  save.hs.q until they reach the server, so playing offline loses nothing. firestore.rules checks every write. */
 const HS = {
   KEY: 'fs_online', view: {}, sending: null,
-  BAD: ['fuck', 'shit', 'bitch', 'cunt', 'dick', 'cock', 'pussy', 'nigg', 'fag', 'rape', 'nazi', 'hitler', 'slut', 'whore', 'porn', 'penis', 'vagina', 'asshole', 'bastard', 'retard', 'twat', 'wank', 'jizz', 'kike', 'chink',
-    'كس', 'زب', 'شرموط', 'منيوك', 'قحب', 'عرص', 'نيك', 'خول', 'طيز'],
+  /** Names are English letters, digits, spaces and _ . - only (also enforced by firestore.rules). */
+  OK_CH: /[^A-Za-z0-9 _.-]/g,
+  // Refused anywhere inside the name (after leetspeak, separators and repeated letters are undone).
+  BAD: ['fuck', 'fuk', 'fck', 'fvck', 'phuck', 'motherf', 'shit', 'bitch', 'biatch', 'cunt', 'dick', 'cock', 'pussy', 'nigg', 'nigga', 'faggot', 'rape', 'nazi', 'hitler', 'kkk',
+    'slut', 'whore', 'porn', 'penis', 'vagina', 'asshole', 'bastard', 'retard', 'twat', 'wank', 'jizz', 'kike', 'chink', 'dildo', 'blowjob', 'handjob', 'boob', 'tits',
+    'titty', 'milf', 'horny', 'nude', 'naked', 'sexy', 'xxx', 'piss', 'bollock', 'clit', 'semen', 'orgasm', 'incest', 'molest'],
+  // Refused only as a whole word (too short to search inside other words).
+  BAD_W: ['ass', 'arse', 'hoe', 'cum', 'tit', 'anal', 'anus', 'sex', 'fag', 'kys', 'stfu', 'fk', 'dik', 'spic', 'prick', 'pedo'],
+  // Innocent words that contain a bad one ("grape", "Peacock", "Scunthorpe"...).
+  GOOD: ['grape', 'drape', 'scrape', 'trapez', 'rapese', 'parapet', 'therap', 'peacock', 'hancock', 'hitchcock', 'babcock', 'woodcock', 'cockpit', 'cocktail', 'cockatoo', 'cockerel',
+    'dickens', 'dickson', 'dickinson', 'benedick', 'scunthorpe', 'shitake', 'shiitake', 'penistone', 'nazir', 'nazim', 'swank', 'pissarro', 'fukushima', 'fukuda'],
   on() { return !!(CFG.online.apiKey && CFG.online.projectId); },
-  /** Keep letters, digits, spaces and _ . - only; 12 characters at most. */
-  clean(v) { try { return String(v || '').normalize('NFKC').replace(/[^\p{L}\p{N} _.-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 12); } catch (e) { return String(v || '').replace(/[^\w .-]/g, '').trim().slice(0, 12); } },
+  /** Keep English letters, digits, spaces and _ . - only; 12 characters at most. */
+  clean(v) { return String(v || '').normalize('NFKC').replace(this.OK_CH, '').replace(/\s+/g, ' ').trim().slice(0, 12); },
+  /** True when a typed name has characters a High Scores name may not use (other alphabets, emoji, symbols). */
+  latin(v) { return !String(v || '').normalize('NFKC').trim().replace(/\s+/g, ' ').match(/[^A-Za-z0-9 _.-]/); },
   bad(v) {
-    const z = String(v).toLowerCase().replace(/[0@]/g, 'o').replace(/[1!|]/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/[5$]/g, 's').replace(/7/g, 't').replace(/[\s_.-]/g, '');
-    return this.BAD.some(w => z.includes(w));
+    const leet = s => s.toLowerCase().replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b').replace(/9/g, 'g');
+    const one = s => s.replace(/(.)\1+/g, '$1'), raw = leet(this.clean(v));
+    if (raw.split(/[\s_.-]+/).some(w => this.BAD_W.includes(w) || this.BAD_W.includes(one(w)) && one(w).length > 2)) return true;
+    const strip = (s, f) => this.GOOD.reduce((z, w) => z.split(f(w)).join(' '), s);
+    const z = raw.replace(/[\s_.-]/g, ''), zs = strip(z, w => w), zo = strip(one(z), one);
+    if (this.BAD_W.includes(z) || this.BAD_W.includes(one(z))) return true;
+    return this.BAD.some(w => zs.includes(w) || one(w) === w && zo.includes(w));   // "fuuuck" is caught, "Bob" is not "boob"
   },
   id(b) { return b === 'endless' ? 'endless' : 'daily-' + dayKey(); },
   live(id) { return id === 'endless' || id === 'daily-' + dayKey(); },
@@ -2797,7 +2824,7 @@ const HS = {
     this.sending = (async () => {
       const c = await this.token(); if (!c) return;
       for (const e of H.q.slice()) {
-        const body = { fields: { name: { stringValue: save.name }, score: { integerValue: String(e.s) }, lv: { integerValue: String(e.lv | 0) } } };
+        const body = { fields: { name: { stringValue: this.clean(save.name) }, score: { integerValue: String(e.s) }, lv: { integerValue: String(e.lv | 0) } } };
         const r = await fetch(this.url('boards/' + e.id + '/scores/' + c.uid), { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + c.tok }, body: JSON.stringify(body) }).catch(() => null);
         if (!r) break;                                             // offline: keep the queue
         if (r.ok) H.sent[e.id] = Math.max(H.sent[e.id] || 0, e.s);
@@ -2830,6 +2857,13 @@ const HS = {
     if (!save.name) Timers.set(() => { if (SM.state === 'end' && Screens.end.r === r) this.askName(go); }, delay);
     else go();
   },
+  /** After a level: show the current #1 of the Endless list on the High Scores button, to make the player want to try. */
+  async tease(r) {
+    if (!this.on() || !menuOn('lb')) return;
+    let top = null; try { const v = this.view.endless; top = (v && v.rows && Date.now() - v.at < 60000 ? v.rows : await this.list('endless'))[0]; } catch (e) { return; }
+    const el = $('#eHsSub'); if (!top || !el || SM.state !== 'end' || Screens.end.r !== r) return;
+    el.textContent = top.uid === this.me() ? t('hsTop1') : t('hsBeat', top.nm, fmt(top.s));
+  },
   async showRank(r) {
     const best = this.best(r.hs); if (!(best > 0) || !save.hs.sent[this.id(r.hs)]) return;
     let n = 0; try { n = await this.rank(r.hs, best); } catch (e) { return; }
@@ -2842,14 +2876,14 @@ const HS = {
   },
   /** Validate a typed name; returns it, or '' after showing why it was refused. */
   take(el, err) {
-    const v = this.clean(el && el.value);
-    if (!v || this.bad(v)) { if (err) err.textContent = t(v ? 'hsBad' : 'hsEmpty'); if (el) el.focus(); return ''; }
+    const raw = el && el.value, v = this.clean(raw), why = !this.latin(raw) ? 'hsLatin' : !v ? 'hsEmpty' : this.bad(v) ? 'hsBad' : '';
+    if (why) { if (err) err.textContent = t(why); if (el) el.focus(); this.why = why; return ''; }
     return v;
   },
   /** A new name in Settings also renames the player's entries on today's boards. */
   rename(el) {
     const v = this.take(el, null);
-    if (!v) { el.value = save.name; UI.toast('✋', t('hsBad'), ''); return; }
+    if (!v) { el.value = save.name; UI.toast('✋', t(this.why || 'hsBad'), ''); return; }
     if (v === save.name) return;
     save.name = v; el.value = v;
     ['endless', 'daily'].forEach(b => { const x = this.best(b); if (x > 0) this.submit(b, x, b === 'endless' ? save.endlessLv || 0 : 0, true); });
@@ -4253,10 +4287,13 @@ Screens.menu = {
   attract: true, back: 'menu',
   enter() {
     const u = unlockedLevel(), gift = Daily.canClaim(), done = ACH.filter(a => save.ach[a.id]).length;
+    const B = (k, e, label) => menuOn(k) ? '<button class="btn" data-a="' + k + '"><span class="e">' + e + '</span>' + label + menuNew(k) + '</button>' : '';
+    const grid = [B('modes', '🕹️', t('modes')), B('shop', '🛒', t('shop')), B('ach', '🏆', t('ach') + ' <small class="num">' + done + '/' + ACH.length + '</small>'),
+      B('settings', '⚙️', t('settings')), B('stats', '📊', t('stats')), B('lb', '🥇', t('lb'))].filter(Boolean);
     UI.show('<div class="wrap grow">'
-      + '<div class="mtop">' + UI.coinPill('mCoins') + Player.chip() + '<span class="grow"></span>'
-      + '<button class="btn ico" data-a="pets" aria-label="' + t('pets') + '">🐾</button>'
-      + '<button class="btn ico" data-a="missions" aria-label="' + t('missions') + '">📋' + (Missions.claimable() ? '<span class="badge">' + Missions.claimable() + '</span>' : '') + '</button>'
+      + '<div class="mtop' + (grid.length > 1 ? ' hasgrid' : '') + '">' + UI.coinPill('mCoins') + Player.chip() + '<span class="grow"></span>'
+      + (menuOn('pets') ? '<button class="btn ico" data-a="pets" aria-label="' + t('pets') + '">🐾' + menuNew('pets') + '</button>' : '')
+      + (menuOn('missions') ? '<button class="btn ico" data-a="missions" aria-label="' + t('missions') + '">📋' + (Missions.claimable() ? '<span class="badge">' + Missions.claimable() + '</span>' : menuNew('missions')) + '</button>' : '')
       + '<button class="btn ico" data-a="gift" aria-label="' + t('giftT') + '">🎁' + (gift ? '<span class="badge">1</span>' : '') + '</button>'
       + '<button class="btn ico" data-a="settings" aria-label="' + t('settings') + '">' + ICON.gear + '</button></div>'
       + '<div class="grow" style="display:flex;flex-direction:column;justify-content:center;gap:12px;padding:4px 0">'
@@ -4264,14 +4301,8 @@ Screens.menu = {
       + '<canvas class="mc" data-m="hand" style="width:116px;height:108px"></canvas></div>'
       + Season.banner()
       + '<button class="btn pri lg block" data-a="play"><span class="stack">▶ ' + t('play') + '<small>' + t('contLv', u) + ' · ' + worldName(Math.min(NW - 1, Math.floor((u - 1) / PER_WORLD))) + '</small></span></button>'
-      + '<div class="mgrid">'
-      + '<button class="btn" data-a="modes"><span class="e">🕹️</span>' + t('modes') + '</button>'
-      + '<button class="btn" data-a="shop"><span class="e">🛒</span>' + t('shop') + '</button>'
-      + '<button class="btn" data-a="ach"><span class="e">🏆</span>' + t('ach') + ' <small class="num">' + done + '/' + ACH.length + '</small></button>'
-      + '<button class="btn" data-a="settings"><span class="e">⚙️</span>' + t('settings') + '</button>'
-      + '<button class="btn" data-a="stats"><span class="e">📊</span>' + t('stats') + '</button>'
-      + '<button class="btn" data-a="lb"><span class="e">🥇</span>' + t('lb') + '</button>'
-      + '</div><button class="linkish" data-a="about">' + t('about') + ' · v' + VERSION + '</button></div>', 'scrim');
+      + (grid.length > 1 ? '<div class="mgrid">' + grid.join('') + '</div>' : '')
+      + '<button class="linkish" data-a="about">' + t('about') + ' · v' + VERSION + '</button></div>', 'scrim');
   },
 };
 Screens.map = {
@@ -4649,8 +4680,9 @@ Screens.end = {
       + (r.test ? '<span class="chip">🔧 ' + t('devTest') + '</span>' : '')
       + (r.lanterns && Season.on('ramadan') ? '<span class="chip">🏮 ' + plus(r.lanterns) + ' · ' + t('evProg', save.event.n, CFG.ramadan[CFG.ramadan.length - 1].n) + '</span>' : '')
       + (!good ? '<div class="tip">' + pick(t('tips')) + '</div>' : '')
+      + (lv && win && r.first ? (() => { const ks = Object.keys(CFG.menuUnlock).filter(k => CFG.menuUnlock[k] === r.n && menuOn(k)); return ks.length ? '<span class="chip new">🔓 ' + t('menuNew', ks.map(k => t(k)).join(', ')) + '</span>' : ''; })() : '')
       + (lv && win && r.n === MAX_LV ? '<p>' + t('allDone') + '</p>' : '')
-      + '<div class="endbtns">' + btns + '</div></div>', 'dark');
+      + '<div class="endbtns">' + btns + (HS.on() && menuOn('lb') && r.mode !== 'practice' ? '<button class="btn hsb block locked" data-a="lb" data-v="' + (r.hs || 'endless') + '"><span>🏆 ' + t('lb') + '</span><small id="eHsSub">' + t(r.hs ? 'hsSeeAll' : 'hsTease') + '</small></button>' : '') + '</div></div>', 'dark');
     const pill = $('#eCoins'), pb = pill && pill.querySelector('[data-coins]');
     if (pb && r.coins) pb.textContent = fmt(r.coinsBefore);
     Sound.play(good ? 'win' : 'lose');
@@ -4663,7 +4695,7 @@ Screens.end = {
     Timers.set(() => el.querySelectorAll('.locked').forEach(b => b.classList.remove('locked')), CFG.endLockMs);
     if (r.achs.length) Ach.toastAll(r.achs, d + 900);
     if (r.missions.length) Missions.toast(r.missions, d + 900 + r.achs.length * 1300);
-    if (r.hs) HS.afterRun(r, d + 700);
+    if (r.hs) HS.afterRun(r, d + 700); else HS.tease(r);
     const later = [];
     r.ups.forEach(rw => later.push(['🆙', t('lvUp', rw.l), Player.rwText(rw)]));
     r.evRewards.forEach(rw => later.push(['🏮', t('evReward'), Player.rwText(rw)]));
@@ -4773,7 +4805,7 @@ const Actions = {
   album() { SM.go('album'); },
   event() { Season.modal(); },
   stats() { SM.go('stats'); },
-  lb() { SM.go('lb'); },
+  lb(v) { SM.go('lb', v === 'endless' || v === 'daily' ? { tab: v } : {}); },
   lbTab(v) { Screens.lb.tab = v; Screens.lb.render(); Screens.lb.load(); },
   lbRetry() { Screens.lb.load(true); },
   hsName() { const v = HS.take($('#hsNameIn'), $('#hsErr')); if (!v) return; save.name = v; persist(true); const f = HS.after; HS.after = null; Modal.close(); if (f) f(); },
@@ -4902,6 +4934,7 @@ function runAction(el, e) {
   lastAct = el; lastActT = now;
   Sound.unlock();
   const a = el.dataset.a, fn = Actions[a]; if (!fn) return;
+  if ((a in CFG.menuUnlock) && !save.menuSeen[a]) { save.menuSeen[a] = 1; persist(true); }
   if (a !== 'start' && el.tagName === 'BUTTON') Sound.play('click');
   fn(el.dataset.v, el, e);
 }
