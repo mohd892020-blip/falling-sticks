@@ -8,10 +8,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Falling Sticks">
-<meta name="description" content="Falling Sticks: a fast arcade reflex game. Catch the stick that matches the glowing arch before it hits the floor.">
-<title>Falling Sticks</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1230'/%3E%3Cpath d='M8 27 Q32 6 56 27' fill='none' stroke='%233b82f6' stroke-width='5' stroke-linecap='round'/%3E%3Crect x='14' y='25' width='5' height='22' rx='2.5' fill='%23ff4d8d'/%3E%3Crect x='29.5' y='18' width='5' height='22' rx='2.5' fill='%23facc15'/%3E%3Crect x='45' y='25' width='5' height='30' rx='2.5' fill='%233b82f6'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-title" content="Stickbolt">
+<meta name="description" content="Stickbolt: a fast arcade reflex game. Catch the stick that matches the glowing arch before it hits the floor.">
+<title>Stickbolt</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /* ================= DESIGN SYSTEM ================= */
@@ -499,7 +499,7 @@ input[type=range]{height:44px}
 <script>
 'use strict';
 /* =====================================================================
-   FALLING STICKS
+   STICKBOLT (formerly Falling Sticks)
    One self-contained file: Canvas 2D + WebAudio, no libraries.
    Sections:
      1. CONFIG      – every tunable number lives here
@@ -514,7 +514,7 @@ input[type=range]{height:44px}
    ===================================================================== */
 
 /* ============================ 1. CONFIG ============================ */
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 
 /** Central tuning table. Change numbers here, not inside the code. */
 const CFG = {
@@ -770,7 +770,7 @@ const STR = {
     hsNameD: 'Pick a name for the online High Scores. Other players will see it.', hsSave: 'Save', hsLater: 'Not now', hsBad: 'Please pick another name.', hsEmpty: 'Type a name first.', hsLatin: 'English letters and numbers only.',
     hsRankE: 'High Scores rank #{0}', hsRankD: 'Today\'s rank #{0}',
     sSaves: '📜 Save history', savesT: 'Save history', tBackups: 'Backups', tLog: 'Progress log', bkNow: 'Back up now', bkRestore: 'Restore', bkConfirm: 'Go back to this backup ({0})? Your current progress is backed up first.', bkDone: 'Backup restored ✓', bkSaved: 'Backup saved ✓', bkEmpty: 'No backups yet', bkInfo: 'Your progress saves on this device after every run. Backups are made from time to time and before any import, reset or restore, and they even survive a reset.', bkWhy_auto: 'Auto', bkWhy_manual: 'Manual', bkWhy_import: 'Before import', bkWhy_reset: 'Before reset', bkWhy_restore: 'Before restore', bkSum: 'Level {0} · ★ {1} · 🪙 {2}', lastSave: '💾 Last saved: {0}', justNow: 'just now', logEmpty: 'Play a little and your progress will show up here.', lg_win: 'Won level {0} {1}', lg_boss: 'Beat the boss of {0} 👑', lg_ach: 'Achievement: {0} 🏆', lg_best: 'New record in {0}: {1}', lg_buy: 'Bought {0} 🛍️', lg_daily: 'Won the daily challenge 📅', lg_world: 'New world unlocked: {0} 🌆', lg_restore: 'Restored a backup ↩️', lg_import: 'Imported progress 📥', lg_reset: 'Started over 🔄',
-    title: 'Falling Sticks', sub: 'Catch the glowing colour', tapStart: 'Tap to start',
+    title: 'Stickbolt', sub: 'Catch the glowing colour', tapStart: 'Tap to start',
     play: 'Play', contLv: 'Level {0}', modes: 'Modes', shop: 'Shop', ach: 'Achievements', stats: 'Stats', lb: 'High Scores', settings: 'Settings', about: 'About', back: 'Back', close: 'Close',
     mapTitle: 'Levels', worldN: 'World {0}', levelN: 'Level {0}', boss: 'Boss',
     catchThe: 'Catch the', col_b: 'BLUE', col_g: 'GREEN', col_r: 'RED',
@@ -820,7 +820,7 @@ const STR = {
     
     bHappy: ['Yay!', 'Great!', 'Wow!', 'Nice!'], bSad: ['Oof!', 'Ouch!', 'No no!'], bCombo: ['Combo! 🔥', 'On fire! 🔥', 'Keep going!'], bSwitch: ['Heads up! 🔄'], bGold: ['Gold! ✨'], bBomb: ['Boom! 💥'], bWin: ['We won! 🎉', 'Yes!'], bLose: ['Next time!'],
     worlds: ['Downtown', 'Neon District', 'The Harbor', 'Night Market', 'Skyline Towers', 'Emerald Ward', 'Crimson Row', 'Rain Quarter', 'Golden Horizon', 'Galaxy Boulevard'],
-    aboutT: 'About', aboutP1: 'A digital take on the "Falling Sticks" arcade machine: tap the stick that matches the arch colour before it hits the floor.', aboutP2: '{0} levels in {1} worlds, plus Endless, Daily Challenge, Practice, a shop and achievements.', aboutP3: 'All the art and music in this game are made with code.',
+    aboutT: 'About', aboutP1: 'Inspired by the classic falling-sticks arcade game: tap the stick that matches the arch colour before it hits the floor.', aboutP2: '{0} levels in {1} worlds, plus Endless, Daily Challenge, Practice, a shop and achievements.', aboutP3: 'All the art and music in this game are made with code.',
     in_twoTone: 'Two-tone sticks 🎨', in_twoToneD: 'Some sticks have two colours. Tap the half that matches the arch. If neither half matches, let it fall.',
     in_wind: 'Windy level 💨', in_windD: 'Gusts push falling sticks sideways. Watch the 💨 arrow and follow the stick.', in_rise: 'Rising sticks ⬆️', in_riseD: 'Some sticks shoot up from the platform. Catch the matching ones before they reach the arch.',
     it_pet_lantern: 'Ramadan lantern', titles: ['Rookie', 'Catcher', 'Sharp eye', 'Stick pro', 'Arcade star', 'Neon legend', 'Grandmaster'], rw_coins: '{0} coins',
@@ -839,7 +839,7 @@ const STR = {
     petPick: 'Choose', petOn: 'With you ✓', petName: 'Name', petAcc: 'Accessories', it_pet_none: 'None',
     it_pet_bow: 'Bow', it_pet_collar: 'Collar', it_pet_party: 'Party hat', it_pet_crown: 'Crown',
     rotate: 'Turn your phone upright to play',
-    clog: [['1.1.1', 'New players start with a simple menu. More buttons appear after levels 1, 3 and 5.'], ['1.1.0', 'Online High Scores for Endless and the daily challenge, a cleaner end screen, the Map is now called Levels, and the game starts on Hard.'], ['1.0.6', 'Live sticks from level 2: they crackle with yellow sparks and carry a ⚡; grab one and you lose a life, even in the target colour.'], ['1.0.5', 'The hidden electric line now starts from level 1.'], ['1.0.4', 'The electric line is now hidden and only lights up when you get zapped; it sits half a stick under the sticks in every level.'], ['1.0.3', 'The electric zone is now a blue safety line under the sticks: grab above it and you get zapped. The line moves lower until level 30.'], ['1.0.2', 'Electric zone from level 12: a stick crackles right after it drops, grab it then and you get zapped and lose your combo.'], ['1.0.1', 'Smoother play on phones (no more hitches), and the life sticks now take the colour you must catch.'], ['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements. Everything plays offline.']],
+    clog: [['1.1.2', 'Falling Sticks has a new name: Stickbolt!'], ['1.1.1', 'New players start with a simple menu. More buttons appear after levels 1, 3 and 5.'], ['1.1.0', 'Online High Scores for Endless and the daily challenge, a cleaner end screen, the Map is now called Levels, and the game starts on Hard.'], ['1.0.6', 'Live sticks from level 2: they crackle with yellow sparks and carry a ⚡; grab one and you lose a life, even in the target colour.'], ['1.0.5', 'The hidden electric line now starts from level 1.'], ['1.0.4', 'The electric line is now hidden and only lights up when you get zapped; it sits half a stick under the sticks in every level.'], ['1.0.3', 'The electric zone is now a blue safety line under the sticks: grab above it and you get zapped. The line moves lower until level 30.'], ['1.0.2', 'Electric zone from level 12: a stick crackles right after it drops, grab it then and you get zapped and lose your combo.'], ['1.0.1', 'Smoother play on phones (no more hitches), and the life sticks now take the colour you must catch.'], ['1.0.0', 'First release: 150 levels in 10 neon worlds with a boss every 15th level, Endless, Daily and Practice modes, companion pets with skills, bouncy springs, camera-flash levels ⚡, a shop, a sticker album and achievements. Everything plays offline.']],
     gift: 'Reward', mins: '{0}m', hours: '{0}h {1}m',
     pw_spring: 'Springs!', pw_heart: '+1 ❤️', pw_slow: 'Slow-mo!', pw_magnet: 'Magnet!', pw_x2: 'Double points!', quick: 'Quick!', enraged: 'The boss is furious! 😡',
     bossName: 'Boss of {0}', hudSurvive: 'Survive · {0}s', survivedN: 'Survived {0} of {1} s',
@@ -863,7 +863,7 @@ const STR = {
     you: 'Player', 
     sName: '👤 Your name',
     
-    cine1: 'Welcome to Falling Sticks! 🕹️ Let me show you how it works.', cine2: 'See the glowing arch? Its colour is the stick you must catch.', cine3: 'A stick shakes... then drops! Tap it before it hits the floor 👆', cine4: 'Different colour? Don\'t touch it ✋ Let it fall.', cine5: 'Catch in a row for combos and more points 🔥 You have {0} hearts ❤️', cine6: 'Ready? Let\'s play! 🎮', sIntro: 'Intro video',
+    cine1: 'Welcome to Stickbolt! 🕹️ Let me show you how it works.', cine2: 'See the glowing arch? Its colour is the stick you must catch.', cine3: 'A stick shakes... then drops! Tap it before it hits the floor 👆', cine4: 'Different colour? Don\'t touch it ✋ Let it fall.', cine5: 'Catch in a row for combos and more points 🔥 You have {0} hearts ❤️', cine6: 'Ready? Let\'s play! 🎮', sIntro: 'Intro video',
     sFps: 'Show FPS counter', st_quick: 'Quick catches', st_power: 'Drone powers', st_missions: 'Missions done', st_cat: 'Cat saves',
   },
 };
@@ -1587,7 +1587,7 @@ function drawColumn(g) {
   g.fillStyle = '#1f2533'; g.beginPath(); g.moveTo(x0 - 3 * u, top + 6 * u); g.lineTo(x1 + 2 * u, top - 1 * u); g.lineTo(x1 + 2 * u, top + 6 * u); g.lineTo(x0 - 3 * u, top + 13 * u); g.closePath(); g.fill();
   g.fillStyle = '#e8eefc'; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.font = 'italic 800 ' + Math.round(14 * u) + 'px Cairo, sans-serif';
   const ty = Math.max(arcY(V.colX1) + 50 * u, top + .09 * H);
-  g.fillText('falling', cx, ty); g.fillText('sticks', cx, ty + 16 * u);
+  g.fillText('stick', cx, ty); g.fillText('bolt ⚡', cx, ty + 16 * u);
   // score LCD
   const ly = ty + 26 * u, lw = (x1 - x0) - 16 * u;
   g.fillStyle = '#020a05'; rr(g, cx - lw / 2, ly, lw, 22 * u, 4 * u); g.fill(); g.strokeStyle = '#273244'; g.lineWidth = 1.2; g.stroke();
@@ -2151,8 +2151,8 @@ function stageName() {
   if (m === 'endless') return 'Endless';
   if (m === 'daily') return 'Daily Challenge';
   if (m === 'tutorial') return 'Training';
-  if (m === 'cinema') return 'Falling Sticks';
-  return STR.en.worlds[Render.world()] || 'Falling Sticks';
+  if (m === 'cinema') return 'Stickbolt';
+  return STR.en.worlds[Render.world()] || 'Stickbolt';
 }
 /** The name as a vertical neon tube (cached per text and colour). */
 function nameSign(txt, c) {
@@ -4758,7 +4758,7 @@ function applySettings() {
 function applyLang() {
   LANG = 'en';
   const h = document.documentElement; h.lang = 'en'; h.dir = 'ltr';
-  document.title = 'Falling Sticks';
+  document.title = 'Stickbolt';
   HUD.labels(); HUD.full();
 }
 /** After import / reset: re-apply everything and start fresh at the menu. */

@@ -1,6 +1,6 @@
 {
-  "name": "Falling Sticks",
-  "short_name": "Falling Sticks",
+  "name": "Stickbolt",
+  "short_name": "Stickbolt",
   "description": "A fast arcade reflex game: catch the stick that matches the glowing arch before it hits the floor.",
   "lang": "en",
   "dir": "ltr",
@@ -31,12 +31,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ]
 }

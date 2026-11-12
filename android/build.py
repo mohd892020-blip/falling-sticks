@@ -4,7 +4,7 @@ Usage:  python android/build.py
 Needs the Android SDK, a JDK and bundletool. By default they come from the Unity 6 install on this PC;
 override with the env vars ANDROID_SDK, JAVA_HOME and BUNDLETOOL.
 Signing details are read from android/signing.properties (git-ignored; see README.md).
-Output: android/out/FallingSticks-<version>.apk and .aab
+Output: android/out/Stickbolt-<version>.apk and .aab
 """
 import io, os, re, shutil, subprocess, sys, tempfile, zipfile
 
@@ -20,7 +20,7 @@ ANDROID_JAR = os.path.join(SDK, 'platforms', 'android-%d' % TARGET, 'android.jar
 MIN_SDK = 24
 WEB_FILES = ['index.html', 'manifest.webmanifest']          # plus the folders below
 WEB_DIRS = ['icons', 'fonts']
-BUILD = tempfile.mkdtemp(prefix='fallingsticks-android-')   # a fresh folder outside the synced project
+BUILD = tempfile.mkdtemp(prefix='stickbolt-android-')   # a fresh folder outside the synced project
 OUT = os.path.join(HERE, 'out')
 LIBS = os.path.join(HERE, 'libs')                           # Play In-App Review + its deps as .aar files (git-ignored, see README)
 ENV = dict(os.environ, JAVA_HOME=JDK, PATH=os.path.join(JDK, 'bin') + os.pathsep + os.environ.get('PATH', ''))
@@ -56,7 +56,7 @@ def version():
 
 def main():
     vname, vcode = version()
-    print('Falling Sticks %s (versionCode %d), target SDK %d' % (vname, vcode, TARGET))
+    print('Stickbolt %s (versionCode %d), target SDK %d' % (vname, vcode, TARGET))
     if not os.path.exists(ANDROID_JAR): sys.exit('missing %s (install "platforms;android-%d" with the SDK Manager)' % (ANDROID_JAR, TARGET))
     os.makedirs(OUT, exist_ok=True)
 
@@ -97,7 +97,7 @@ def main():
 
     s = signing()
     ENV['FS_KS_PASS'], ENV['FS_KEY_PASS'] = s['storePassword'], s['keyPassword']
-    base = 'FallingSticks-%s' % vname
+    base = 'Stickbolt-%s' % vname
 
     unsigned = os.path.join(BUILD, 'unsigned.apk')             # 4. APK: add dex, align, sign
     shutil.copy(os.path.join(BUILD, 'res.apk'), unsigned)

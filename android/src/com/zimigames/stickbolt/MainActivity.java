@@ -1,4 +1,4 @@
-package com.mohd.fallingsticks;
+package com.zimigames.stickbolt;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -33,7 +33,7 @@ import com.google.android.play.core.review.ReviewManagerFactory;
 import java.io.InputStream;
 
 /**
- * Falling Sticks runs fully offline: the game files live in the APK (assets/www) and are served to the WebView
+ * Stickbolt runs fully offline: the game files live in the APK (assets/www) and are served to the WebView
  * from https://appassets.androidplatform.net/, so storage, audio and fonts behave like on the web.
  */
 public class MainActivity extends Activity {

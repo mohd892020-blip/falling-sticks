@@ -60,10 +60,11 @@
   const falling = (c, c2, k) => { const s = hang(); s.st = ST.FALL; s.y0 = arcY(s.x) + 10 * V.u; s.y = s.y0 + 40 * V.u + (Game.zapOn() ? V.len * 1.6 : 0); s.vy = 50; s.c = c; s.c2 = c2 || ''; s.k = k || KIND.N; return s; };
   const other = () => COLOR_KEYS.find(c => c !== Game.target);
   const third = () => COLOR_KEYS.find(c => c !== Game.target && c !== other());
+  CFG.online.apiKey = ''; CFG.online.projectId = '';   // no real network in tests (the real High Scores server made runs hang); tests that need it stub HS
   layout(); Cache.clear();
 
   await T('boot: game objects ready, no errors', () => { ok(typeof Game === 'object' && Game.sticks.length === CFG.lanes + CFG.floorSticks, 'sticks'); ok(['splash', 'cinema', 'menu'].includes(SM.state), 'state ' + SM.state); eq(errs.length, 0, 'errors'); });
-  await T('version: sw.js cache name matches VERSION', async () => { const sw = await (await fetch('../sw.js', { cache: 'no-store' })).text(); ok(sw.includes("'falling-sticks-v" + VERSION + "'"), 'sw.js CACHE is not v' + VERSION); });
+  await T('version: sw.js cache name matches VERSION', async () => { const sw = await (await fetch('../sw.js', { cache: 'no-store' })).text(); ok(sw.includes("'stickbolt-v" + VERSION + "'"), 'sw.js CACHE is not v' + VERSION); });
   await T('i18n: every language has every key, placeholder and achievement', () => {
     const en = STR.en, bad = [];
     for (const l of Object.keys(LANGS)) {
@@ -186,14 +187,14 @@
     } finally { Dev.on = dev; fresh(); SM.go('menu'); }
   });
   await T('end screen: a High Scores button invites the player once the list is open', async () => {
-    const L0 = HS.list, on0 = CFG.online.apiKey, dev = Dev.on; Dev.on = false; CFG.online.apiKey = CFG.online.apiKey || 'test';
-    HS.list = async () => [{ uid: 'someone', nm: 'Lina', s: 9000, lv: 30 }]; HS.view = {};
+    const L0 = HS.list, F0 = HS.flush, on0 = CFG.online.apiKey, p0 = CFG.online.projectId, dev = Dev.on; Dev.on = false; CFG.online.apiKey = 'test'; CFG.online.projectId = 'test';
+    HS.list = async () => [{ uid: 'someone', nm: 'Lina', s: 9000, lv: 30 }]; HS.flush = () => Promise.resolve(); HS.view = {};
     try {
       fresh({ stars: [3, 3, 3, 3], menuSeen: {} }); eq(play('level', 5), 'end', 'level 5 ends');
       const b = UI.cur.querySelector('.hsb'); ok(b && b.dataset.a === 'lb', 'button shown');
       await new Promise(r => setTimeout(r, 50)); ok(/Lina/.test($('#eHsSub').textContent), 'teases #1: ' + $('#eHsSub').textContent);
       fresh({ menuSeen: {} }); eq(play('level', 1), 'end', 'level 1 ends'); ok(!UI.cur.querySelector('.hsb'), 'hidden before level 3');
-    } finally { HS.list = L0; CFG.online.apiKey = on0; Dev.on = dev; HS.view = {}; fresh(); SM.go('menu'); }
+    } finally { HS.list = L0; HS.flush = F0; CFG.online.apiKey = on0; CFG.online.projectId = p0; Dev.on = dev; HS.view = {}; fresh(); SM.go('menu'); }
   });
   await T('high scores: names are cleaned and filtered, only better scores wait to be sent', () => {
     eq(HS.clean('  Lina<script>  '), 'Linascript'); eq(HS.clean('سارة 🎮'), ''); eq(HS.clean('Ali علي'), 'Ali'); eq(HS.clean('abcdefghijklmnop'), 'abcdefghijkl');
